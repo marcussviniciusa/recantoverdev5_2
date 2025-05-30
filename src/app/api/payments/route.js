@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { connectDB } from '../../../../lib/db';
 import Payment from '../../../../models/Payment';
 import Order from '../../../../models/Order';
+import User from '../../../../models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'recanto_verde_super_secret_key_2025';
 
@@ -65,10 +66,12 @@ export async function GET(request) {
 
     const token = authHeader.substring(7);
     
+    let decoded;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET);
       
-      if (decoded.role !== 'recepcionista') {
+      // Permitir acesso para recepcionistas e garçons
+      if (decoded.role !== 'recepcionista' && decoded.role !== 'garcom') {
         return NextResponse.json({ success: false, error: 'Acesso negado' }, { status: 403 });
       }
     } catch (error) {
@@ -101,8 +104,14 @@ export async function GET(request) {
     // Buscar apenas pagamentos do novo sistema (com orderIds array)
     filter.orderIds = { $exists: true, $type: 'array' };
 
+    // Se for garçom, filtrar apenas pagamentos relacionados a ele
+    if (decoded.role === 'garcom') {
+      filter.waiterId = decoded.userId;
+    }
+
     const payments = await Payment.find(filter)
       .populate('tableId', 'number capacity identification status')
+      .populate('waiterId', 'username email')
       .sort({ paidAt: -1 });
 
     // Filtrar apenas pagamentos com tableId válido (para evitar referências órfãs)
@@ -123,7 +132,9 @@ export async function GET(request) {
         payments: validPayments,
         total: validPayments.length
       },
-      message: 'Retornando apenas pagamentos válidos do novo sistema por mesa'
+      message: decoded.role === 'garcom' 
+        ? 'Retornando pagamentos do garçom logado' 
+        : 'Retornando todos os pagamentos válidos do novo sistema por mesa'
     });
 
   } catch (error) {

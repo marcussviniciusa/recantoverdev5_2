@@ -76,7 +76,7 @@ export interface Payment {
 }
 
 export interface PaymentMethod {
-  type: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'outro';
+  type: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'outro' | 'pendente';
   amount: number;
   description?: string;
 }

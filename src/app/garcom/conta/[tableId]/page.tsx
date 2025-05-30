@@ -50,7 +50,7 @@ interface Summary {
 }
 
 interface PaymentMethod {
-  type: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'outro';
+  type: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'outro' | 'pendente';
   amount: number;
   description?: string;
 }
@@ -168,7 +168,8 @@ export default function FecharConta() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          paymentMethods: paymentMethods
+          paymentMethods: paymentMethods,
+          status: 'pago' // Processar pagamento completo
         })
       });
 
@@ -192,6 +193,49 @@ export default function FecharConta() {
       }
     } catch (error) {
       console.error('Erro ao processar pagamento:', error);
+      alert('Erro de conexão');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const createPendingPayment = async () => {
+    setSubmitting(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/payments/mesa/${tableId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          paymentMethods: [{ type: 'pendente', amount: summary.unpaidAmount, description: 'Aguardando finalização pelo admin' }],
+          status: 'pendente' // Criar pagamento pendente para admin finalizar
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('✅ Pagamento pendente criado:', data.data.payment);
+        
+        // Emitir evento Socket.IO para notificar admin
+        emitEvent('payment_pending', {
+          tableId: tableId,
+          tableNumber: table?.number,
+          totalAmount: summary.unpaidAmount,
+          waiterName: localStorage.getItem('userName')
+        });
+        
+        alert('Pagamento enviado para o admin! A conta aparecerá como pendente no sistema.');
+        router.push('/garcom/mesas');
+      } else {
+        alert('Erro ao criar pagamento pendente: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao criar pagamento pendente:', error);
       alert('Erro de conexão');
     } finally {
       setSubmitting(false);
@@ -319,12 +363,27 @@ export default function FecharConta() {
           )}
 
           {summary.canPayNow && (
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
-            >
-              Processar Pagamento - R$ {summary.unpaidAmount.toFixed(2)}
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={createPendingPayment}
+                disabled={submitting}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {submitting ? 'Processando...' : `📋 Enviar para Admin - R$ ${summary.unpaidAmount.toFixed(2)}`}
+              </button>
+              
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+              >
+                💳 Processar Pagamento Agora - R$ {summary.unpaidAmount.toFixed(2)}
+              </button>
+              
+              <div className="text-xs text-gray-500 text-center mt-2">
+                💡 <strong>Enviar para Admin:</strong> Cria pagamento pendente para o admin finalizar<br/>
+                💳 <strong>Processar Agora:</strong> Processa o pagamento completo imediatamente
+              </div>
+            </div>
           )}
 
           {!summary.canPayNow && summary.unpaidAmount === 0 && (

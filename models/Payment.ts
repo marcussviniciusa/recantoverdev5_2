@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPaymentMethod {
-  type: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'outro';
+  type: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'outro' | 'pendente';
   amount: number;
   description?: string;
 }
@@ -39,7 +39,7 @@ const PaymentMethodSchema = new Schema({
     type: String,
     required: [true, 'Tipo de pagamento é obrigatório'],
     enum: {
-      values: ['dinheiro', 'cartao_credito', 'cartao_debito', 'pix', 'outro'],
+      values: ['dinheiro', 'cartao_credito', 'cartao_debito', 'pix', 'outro', 'pendente'],
       message: 'Tipo de pagamento inválido'
     }
   },
@@ -110,7 +110,7 @@ const PaymentSchema = new Schema<IPayment>({
   },
   waiterId: {
     type: Schema.Types.ObjectId,
-    ref: 'Waiter'
+    ref: 'User'
   },
   waiterCommissionEnabled: {
     type: Boolean,
@@ -156,7 +156,10 @@ PaymentSchema.pre<IPayment>('save', function(next) {
   this.waiterCommissionAmount = this.calculateWaiterCommission();
   
   // Se o valor pago for igual ou maior que o total, marcar como pago
-  if (this.paidAmount >= this.totalAmount && this.status === 'pendente') {
+  // EXCETO se for um pagamento pendente (com método 'pendente')
+  const hasPendingMethod = this.paymentMethods.some((method: IPaymentMethod) => method.type === 'pendente');
+  
+  if (this.paidAmount >= this.totalAmount && this.status === 'pendente' && !hasPendingMethod) {
     this.status = 'pago';
     if (!this.paidAt) {
       this.paidAt = new Date();

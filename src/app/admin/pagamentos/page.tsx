@@ -85,6 +85,10 @@ export default function AdminPagamentos() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [pendingPaymentToFinalize, setPendingPaymentToFinalize] = useState<Payment | null>(null);
+  const [finalizePaymentMethods, setFinalizePaymentMethods] = useState<Array<{type: string, amount: number, description?: string}>>([]);
+  const [submittingFinalize, setSubmittingFinalize] = useState(false);
 
   useEffect(() => {
     // Verificar autenticação
@@ -112,7 +116,10 @@ export default function AdminPagamentos() {
 
     if (statusFilter) {
       if (statusFilter === 'pendente') {
-        filtered = filtered.filter(td => td.canPay && !td.payment);
+        filtered = filtered.filter(td => 
+          (td.canPay && !td.payment) || // Mesas que podem pagar mas ainda não têm pagamento
+          (td.payment && td.payment.status === 'pendente') // Mesas com pagamentos pendentes
+        );
       } else if (statusFilter === 'ocupada') {
         filtered = filtered.filter(td => td.table.status === 'ocupada');
       }
@@ -141,6 +148,9 @@ export default function AdminPagamentos() {
         
         return (
           payment.tableId.number?.toString().includes(searchTerm) ||
+          // CORREÇÃO: Buscar também no campo tableIdentification (histórico)
+          (payment.tableIdentification && payment.tableIdentification.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          // Manter busca no campo atual também (para compatibilidade)
           (payment.tableId.identification && payment.tableId.identification.toLowerCase().includes(searchTerm.toLowerCase())) ||
           payment._id.toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -207,6 +217,32 @@ export default function AdminPagamentos() {
         }
       }
 
+      // Separar pagamentos por status primeiro
+      const pendingPayments = payments.filter(p => p.status === 'pendente' || p.status === 'processando');
+      const paidPayments = payments.filter(p => p.status === 'pago');
+
+      // Criar mapa de pedidos já pagos (apenas de pagamentos CONCLUÍDOS)
+      const paidOrderIds = new Set<string>();
+      paidPayments.forEach(payment => {
+        payment.orderIds.forEach(orderId => {
+          paidOrderIds.add(orderId);
+        });
+      });
+
+      // Criar mapa de pedidos em pagamentos pendentes
+      const pendingOrderIds = new Set<string>();
+      pendingPayments.forEach(payment => {
+        payment.orderIds.forEach(orderId => {
+          pendingOrderIds.add(orderId);
+        });
+      });
+
+      console.log(`📊 Total de pagamentos carregados: ${payments.length}`);
+      console.log(`📊 Pagamentos pendentes: ${pendingPayments.length}`);
+      console.log(`📊 Pagamentos pagos: ${paidPayments.length}`);
+      console.log(`📊 Pedidos já pagos: ${paidOrderIds.size}`);
+      console.log(`📊 Pedidos em pagamentos pendentes: ${pendingOrderIds.size}`);
+
       // Organizar dados por mesa para pagamentos pendentes
       const tableMap = new Map<string, TableWithData>();
 
@@ -221,53 +257,92 @@ export default function AdminPagamentos() {
         });
       });
 
-      // Organizar pedidos por mesa
+      // Organizar pedidos por mesa (pedidos não pagos OU em pagamentos pendentes)
       ordersData.data.orders.forEach((order: Order) => {
         const tableData = tableMap.get(order.tableId);
         if (tableData) {
-          tableData.orders.push(order);
-          if (order.status !== 'cancelado' && order.status !== 'pago') {
-            tableData.totalAmount += order.totalAmount;
-            tableData.orderCount++;
+          // CORREÇÃO: Incluir pedidos que NÃO foram pagos OU estão em pagamentos pendentes
+          if (!paidOrderIds.has(order._id)) {
+            tableData.orders.push(order);
+            if (order.status !== 'cancelado') {
+              tableData.totalAmount += order.totalAmount;
+              tableData.orderCount++;
+            }
           }
         }
       });
 
-      // Verificar se pode pagar (todos pedidos entregues)
+      // Verificar se pode pagar (todos pedidos entregues e não pagos)
       tableMap.forEach((tableData) => {
         if (tableData.orders.length > 0) {
           const deliveredOrders = tableData.orders.filter(o => o.status === 'entregue');
-          const paidOrders = tableData.orders.filter(o => o.status === 'pago');
-          tableData.canPay = deliveredOrders.length > 0 && (deliveredOrders.length + paidOrders.length) === tableData.orders.length;
+          tableData.canPay = deliveredOrders.length > 0 && deliveredOrders.length === tableData.orders.length;
         }
       });
 
-      // Adicionar pagamentos pendentes
-      const pendingPayments = payments.filter(p => p.status !== 'pago');
+      // Adicionar apenas pagamentos realmente pendentes
       pendingPayments.forEach((payment) => {
         const tableId = typeof payment.tableId === 'string' ? payment.tableId : payment.tableId._id;
         const tableData = tableMap.get(tableId);
         if (tableData) {
           tableData.payment = payment;
+          
+          // CORREÇÃO: Para pagamentos pendentes, garantir que os pedidos sejam exibidos
+          // Se a mesa tem pagamento pendente mas não tem pedidos carregados, carregar os pedidos do pagamento
+          if (tableData.orderCount === 0 && payment.orderIds.length > 0) {
+            // Buscar os pedidos específicos deste pagamento
+            const paymentOrdersCount = payment.orderIds.length;
+            tableData.orderCount = paymentOrdersCount;
+            // Usar o valor total do pagamento se não tiver valor calculado dos pedidos
+            if (tableData.totalAmount === 0) {
+              tableData.totalAmount = payment.totalAmount;
+            }
+            console.log(`🔄 Mesa ${tableData.table.number}: Ajustado para mostrar ${paymentOrdersCount} pedidos do pagamento pendente`);
+          }
+          
+          console.log(`➕ Adicionado pagamento pendente para mesa ${tableData.table.number}: ${payment._id}`);
         }
       });
 
-      // Filtrar apenas mesas com dados relevantes para aba pendentes
-      const result = Array.from(tableMap.values()).filter(td => 
-        td.orders.length > 0 || td.table.status === 'ocupada'
-      );
+      // Filtrar mesas relevantes com uma lógica melhorada
+      const result = Array.from(tableMap.values()).filter(td => {
+        // Mostrar mesa se:
+        // 1. Tem pedidos ativos (não pagos)
+        // 2. Tem pagamentos pendentes  
+        // 3. Está ocupada MAS tem pedidos ativos
+        return td.orders.length > 0 || td.payment;
+      });
+
+      // Log das mesas com pagamentos pendentes
+      const tablesWithPendingPayments = result.filter(td => td.payment);
+      console.log(`📋 Mesas com pagamentos pendentes: ${tablesWithPendingPayments.length}`);
+      tablesWithPendingPayments.forEach(td => {
+        console.log(`  Mesa ${td.table.number}: ${td.payment?._id} (${td.payment?.status}) - R$ ${td.payment?.totalAmount}`);
+      });
+
+      // Log das mesas filtradas
+      console.log(`📋 Total de mesas exibidas: ${result.length}`);
+      result.forEach(td => {
+        console.log(`  Mesa ${td.table.number}: ${td.orderCount} pedidos ativos, ${td.canPay ? 'PODE PAGAR' : 'EM ANDAMENTO'}, Status: ${td.table.status}, Payment: ${td.payment ? `${td.payment._id} (${td.payment.status})` : 'Nenhum'}`);
+      });
 
       setTablesData(result);
       
-      // Filtrar apenas pagamentos válidos (com tableId válido) para o histórico
-      const validPayments = payments.filter(p => 
-        p.status === 'pago' && 
+      // Filtrar apenas pagamentos PAGOS válidos (com tableId válido) para o histórico
+      const validPaidPayments = paidPayments.filter(p => 
         p.tableId && 
         typeof p.tableId === 'object' && 
         p.tableId.number !== undefined
       );
       
-      setPaymentsHistory(validPayments);
+      console.log(`📊 Pagamentos válidos no histórico: ${validPaidPayments.length}`);
+      validPaidPayments.forEach((p, index) => {
+        console.log(`  ${index + 1}. Mesa ${p.tableId.number}: ${p._id} - R$ ${p.totalAmount} (${new Date(p.paidAt).toLocaleString('pt-BR')})`);
+        // Log para debug do problema de identificação histórica
+        console.log(`    🔍 Identificação histórica: "${p.tableIdentification || 'VAZIO'}" vs atual: "${p.tableId.identification || 'VAZIO'}"`);
+      });
+      
+      setPaymentsHistory(validPaidPayments);
 
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -321,6 +396,87 @@ export default function AdminPagamentos() {
     setPaymentDetails(null);
   };
 
+  const openFinalizeModal = (payment: Payment) => {
+    setPendingPaymentToFinalize(payment);
+    setFinalizePaymentMethods([{ type: 'dinheiro', amount: payment.totalAmount }]);
+    setShowFinalizeModal(true);
+  };
+
+  const closeFinalizeModal = () => {
+    setPendingPaymentToFinalize(null);
+    setFinalizePaymentMethods([]);
+    setShowFinalizeModal(false);
+  };
+
+  const addFinalizePaymentMethod = () => {
+    setFinalizePaymentMethods([...finalizePaymentMethods, { type: 'dinheiro', amount: 0 }]);
+  };
+
+  const updateFinalizePaymentMethod = (index: number, field: string, value: any) => {
+    const updated = [...finalizePaymentMethods];
+    updated[index] = { ...updated[index], [field]: value };
+    setFinalizePaymentMethods(updated);
+  };
+
+  const removeFinalizePaymentMethod = (index: number) => {
+    setFinalizePaymentMethods(finalizePaymentMethods.filter((_, i) => i !== index));
+  };
+
+  const getTotalFinalizePaid = () => {
+    return finalizePaymentMethods.reduce((sum, method) => sum + method.amount, 0);
+  };
+
+  const getFinalizeChange = () => {
+    if (!pendingPaymentToFinalize) return 0;
+    const totalPaid = getTotalFinalizePaid();
+    return Math.max(0, totalPaid - pendingPaymentToFinalize.totalAmount);
+  };
+
+  const isFinalizePaymentValid = () => {
+    if (!pendingPaymentToFinalize) return false;
+    const totalPaid = getTotalFinalizePaid();
+    return totalPaid >= pendingPaymentToFinalize.totalAmount && finalizePaymentMethods.length > 0;
+  };
+
+  const finalizePendingPayment = async () => {
+    if (!pendingPaymentToFinalize || !isFinalizePaymentValid()) {
+      alert('Valor pago deve ser igual ou maior que o valor da conta');
+      return;
+    }
+
+    setSubmittingFinalize(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/payments/finalize', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          paymentId: pendingPaymentToFinalize._id,
+          paymentMethods: finalizePaymentMethods
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Pagamento finalizado com sucesso!');
+        closeFinalizeModal();
+        loadData(); // Recarregar dados
+      } else {
+        alert('Erro ao finalizar pagamento: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao finalizar pagamento:', error);
+      alert('Erro de conexão');
+    } finally {
+      setSubmittingFinalize(false);
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -359,9 +515,11 @@ export default function AdminPagamentos() {
       return 'bg-green-100 text-green-800';
     } else if (tableData.canPay) {
       return 'bg-yellow-100 text-yellow-800';
-    } else if (tableData.table.status === 'ocupada') {
+    } else if (tableData.orderCount > 0) {
+      // Tem pedidos ativos mas ainda não pode pagar (preparando, etc)
       return 'bg-blue-100 text-blue-800';
     }
+    // Mesa sem pedidos ativos - provavelmente já foi paga ou está disponível
     return 'bg-gray-100 text-gray-800';
   };
 
@@ -370,17 +528,40 @@ export default function AdminPagamentos() {
       return 'Pago';
     } else if (tableData.canPay) {
       return 'Pode Pagar';
-    } else if (tableData.table.status === 'ocupada') {
+    } else if (tableData.orderCount > 0) {
+      // Tem pedidos ativos mas ainda não pode pagar
       return 'Em Andamento';
     }
-    return 'Disponível';
+    // Mesa sem pedidos ativos
+    return 'Sem Pedidos Ativos';
   };
 
   // Calcular estatísticas
-  const totalPendente = tablesData.filter(td => td.canPay && !td.payment).length;
+  // CORREÇÃO: Incluir mesas com pagamentos pendentes no contador
+  const totalPendente = tablesData.filter(td => 
+    (td.canPay && !td.payment) || // Mesas que podem pagar mas ainda não têm pagamento
+    (td.payment && td.payment.status === 'pendente') // Mesas com pagamentos pendentes
+  ).length;
+  
+  // Log para debug do contador
+  const mesasQuePodesPagar = tablesData.filter(td => td.canPay && !td.payment);
+  const mesasComPagamentoPendente = tablesData.filter(td => td.payment && td.payment.status === 'pendente');
+  console.log(`📊 CONTADOR - Mesas que podem pagar: ${mesasQuePodesPagar.length}`);
+  console.log(`📊 CONTADOR - Mesas com pagamento pendente: ${mesasComPagamentoPendente.length}`);
+  console.log(`📊 CONTADOR - Total pendente: ${totalPendente}`);
+  
   const totalPago = paymentsHistory.length;
   const valorTotal = paymentsHistory.reduce((sum, payment) => sum + payment.totalAmount, 0);
-  const valorPendente = tablesData.filter(td => td.canPay && !td.payment).reduce((sum, td) => sum + td.totalAmount, 0);
+  
+  // CORREÇÃO: Incluir valor de pagamentos pendentes no cálculo
+  const valorPendente = tablesData.filter(td => 
+    (td.canPay && !td.payment) || 
+    (td.payment && td.payment.status === 'pendente')
+  ).reduce((sum, td) => {
+    // Se tem pagamento pendente, usar o valor do pagamento, senão usar valor dos pedidos
+    return sum + (td.payment?.status === 'pendente' ? td.payment.totalAmount : td.totalAmount);
+  }, 0);
+  
   const valorDia = paymentsHistory
     .filter(payment => {
       const today = new Date().toDateString();
@@ -643,17 +824,36 @@ export default function AdminPagamentos() {
                             {tableData.table.assignedWaiter?.username || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{tableData.orderCount} pedidos</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {tableData.payment?.status === 'pendente' 
+                                ? `${tableData.payment.orderIds.length} pedidos`
+                                : `${tableData.orderCount} pedidos`
+                              }
+                            </div>
                             <div className="text-sm text-gray-500">
-                              {tableData.orders.filter(o => o.status === 'entregue').length} entregues
+                              {tableData.payment?.status === 'pendente' 
+                                ? 'Em pagamento'
+                                : `${tableData.orders.filter(o => o.status === 'entregue').length} entregues`
+                              }
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-bold text-gray-900">{formatCurrency(tableData.totalAmount)}</div>
+                            <div className="text-sm font-bold text-gray-900">
+                              {formatCurrency(tableData.payment?.status === 'pendente' ? tableData.payment.totalAmount : tableData.totalAmount)}
+                            </div>
+                            {tableData.payment?.status === 'pendente' && (
+                              <div className="text-xs text-orange-600">
+                                Pagamento Pendente
+                              </div>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(tableData)}`}>
-                              {getStatusLabel(tableData)}
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              tableData.payment?.status === 'pendente' 
+                                ? 'bg-orange-100 text-orange-800' 
+                                : getStatusColor(tableData)
+                            }`}>
+                              {tableData.payment?.status === 'pendente' ? 'Pagamento Pendente' : getStatusLabel(tableData)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -664,8 +864,15 @@ export default function AdminPagamentos() {
                               >
                                 Processar Pagamento
                               </Link>
-                            ) : tableData.payment ? (
-                              <span className="text-green-600">✓ Pago</span>
+                            ) : tableData.payment?.status === 'pendente' ? (
+                              <button
+                                onClick={() => openFinalizeModal(tableData.payment!)}
+                                className="text-green-600 hover:text-green-700 font-medium"
+                              >
+                                Finalizar Pagamento
+                              </button>
+                            ) : tableData.payment?.status === 'pago' ? (
+                              <span className="text-gray-600">✓ Pago</span>
                             ) : (
                               <span className="text-gray-400">-</span>
                             )}
@@ -719,7 +926,7 @@ export default function AdminPagamentos() {
                                 Mesa {payment.tableId.number || 'N/A'}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {payment.tableId.identification && `${payment.tableId.identification} • `}
+                                {payment.tableIdentification && `${payment.tableIdentification} • `}
                                 ID: {payment._id.slice(-6)}
                               </div>
                             </div>
@@ -816,7 +1023,7 @@ export default function AdminPagamentos() {
                   Detalhes do Pagamento - Mesa {selectedPayment.tableId.number}
                 </h2>
                 <p className="text-blue-100 mt-1">
-                  {selectedPayment.tableId.identification && `${selectedPayment.tableId.identification} • `}
+                  {selectedPayment.tableIdentification && `${selectedPayment.tableIdentification} • `}
                   ID: {selectedPayment._id.slice(-6)}
                 </p>
               </div>
@@ -1018,6 +1225,139 @@ export default function AdminPagamentos() {
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500"
               >
                 Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Finalização de Pagamento Pendente */}
+      {showFinalizeModal && pendingPaymentToFinalize && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+            {/* Header do Modal */}
+            <div className="bg-green-600 text-white p-6 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold">
+                  Finalizar Pagamento
+                </h2>
+                <p className="text-green-100 mt-1">
+                  Mesa {pendingPaymentToFinalize.tableId.number} • {formatCurrency(pendingPaymentToFinalize.totalAmount)}
+                </p>
+              </div>
+              <button
+                onClick={closeFinalizeModal}
+                className="text-white hover:text-gray-200 text-2xl font-bold w-8 h-8 flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex justify-between">
+                  <span>Total a pagar:</span>
+                  <span className="font-bold">{formatCurrency(pendingPaymentToFinalize.totalAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Total pago:</span>
+                  <span className="font-bold text-green-600">{formatCurrency(getTotalFinalizePaid())}</span>
+                </div>
+                {getFinalizeChange() > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span>Troco:</span>
+                    <span className="font-bold">{formatCurrency(getFinalizeChange())}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Métodos de Pagamento</h3>
+                  <button
+                    onClick={addFinalizePaymentMethod}
+                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+
+                {finalizePaymentMethods.map((method, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                        <select
+                          value={method.type}
+                          onChange={(e) => updateFinalizePaymentMethod(index, 'type', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        >
+                          <option value="dinheiro">Dinheiro</option>
+                          <option value="cartao_credito">Cartão de Crédito</option>
+                          <option value="cartao_debito">Cartão de Débito</option>
+                          <option value="pix">PIX</option>
+                          <option value="outro">Outro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Valor</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={method.amount}
+                          onChange={(e) => updateFinalizePaymentMethod(index, 'amount', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Descrição (opcional)</label>
+                      <input
+                        type="text"
+                        value={method.description || ''}
+                        onChange={(e) => updateFinalizePaymentMethod(index, 'description', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        placeholder="Ex: Troco para R$ 50,00"
+                      />
+                    </div>
+
+                    {finalizePaymentMethods.length > 1 && (
+                      <button
+                        onClick={() => removeFinalizePaymentMethod(index)}
+                        className="text-red-600 hover:text-red-700 text-sm"
+                      >
+                        Remover método
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {!isFinalizePaymentValid() && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+                    ⚠️ O valor total pago deve ser igual ou maior que o valor da conta
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer do Modal */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={closeFinalizeModal}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={finalizePendingPayment}
+                disabled={!isFinalizePaymentValid() || submittingFinalize}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+              >
+                {submittingFinalize ? 'Finalizando...' : 'Finalizar Pagamento'}
               </button>
             </div>
           </div>

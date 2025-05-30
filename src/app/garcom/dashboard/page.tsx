@@ -8,11 +8,7 @@ interface Table {
   _id: string;
   number: number;
   capacity: number;
-  status: 'livre' | 'ocupada' | 'reservada' | 'limpeza';
-  assignedWaiter?: {
-    _id: string;
-    username: string;
-  };
+  status: 'disponivel' | 'ocupada' | 'reservada' | 'manutencao';
 }
 
 interface Order {
@@ -20,6 +16,10 @@ interface Order {
   tableId: {
     _id: string;
     number: number;
+  };
+  waiterId: {
+    _id: string;
+    username: string;
   };
   status: 'pendente' | 'preparando' | 'pronto' | 'entregue';
   totalAmount: number;
@@ -41,6 +41,10 @@ export default function GarcomDashboard() {
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
+      const userName = localStorage.getItem('userName');
+      
+      console.log('🔍 Dashboard - UserID:', userId);
+      console.log('🔍 Dashboard - UserName:', userName);
       
       const response = await fetch('/api/tables', {
         headers: {
@@ -50,10 +54,16 @@ export default function GarcomDashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        const assignedTables = data.tables.filter((table: Table) => 
-          table.assignedWaiter?._id === userId
-        );
-        setMyTables(assignedTables);
+        if (data.success) {
+          console.log('📊 Dashboard - Todas as mesas:', data.data.tables.length);
+          console.log('🔍 Dashboard - Estrutura da primeira mesa:', data.data.tables[0]);
+          
+          // Como as mesas não têm assignedWaiter, vamos mostrar todas as mesas
+          // e filtrar pelos pedidos do garçom nas próximas funções
+          const allTables = data.data.tables || [];
+          console.log('📊 Dashboard - Mostrando todas as mesas disponíveis:', allTables.length);
+          setMyTables(allTables);
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar mesas:', error);
@@ -65,6 +75,7 @@ export default function GarcomDashboard() {
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
+      const userName = localStorage.getItem('userName');
       
       const response = await fetch('/api/orders', {
         headers: {
@@ -74,10 +85,19 @@ export default function GarcomDashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        const myOrdersList = data.orders.filter((order: any) => 
-          order.waiterId._id === userId
-        );
-        setMyOrders(myOrdersList);
+        if (data.success) {
+          console.log('📊 Dashboard - Todos os pedidos:', data.data.orders.length);
+          console.log('🔍 Dashboard - Estrutura do primeiro pedido:', data.data.orders[0]);
+          
+          // Filtrar pedidos pelo waiterId (ObjectId simples na estrutura real)
+          const myOrdersList = data.data.orders.filter((order: any) => {
+            // Se waiterId for um objeto, usar _id, senão comparar diretamente
+            const orderWaiterId = typeof order.waiterId === 'object' ? order.waiterId._id : order.waiterId;
+            return orderWaiterId === userId;
+          });
+          console.log('📊 Dashboard - Pedidos do garçom:', myOrdersList.length);
+          setMyOrders(myOrdersList);
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error);
@@ -104,7 +124,7 @@ export default function GarcomDashboard() {
   const stats = {
     totalTables: myTables.length,
     occupiedTables: myTables.filter(t => t.status === 'ocupada').length,
-    freeTables: myTables.filter(t => t.status === 'livre').length,
+    freeTables: myTables.filter(t => t.status === 'disponivel').length,
     pendingOrders: myOrders.filter(o => o.status === 'pendente').length,
     preparingOrders: myOrders.filter(o => o.status === 'preparando').length,
     readyOrders: myOrders.filter(o => o.status === 'pronto').length,
@@ -204,14 +224,14 @@ export default function GarcomDashboard() {
                   <div className="flex items-center gap-3">
                     <span className="font-medium">Mesa {table.number}</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      table.status === 'livre' ? 'bg-green-100 text-green-800' :
+                      table.status === 'disponivel' ? 'bg-green-100 text-green-800' :
                       table.status === 'ocupada' ? 'bg-red-100 text-red-800' :
                       table.status === 'reservada' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
-                      {table.status === 'livre' ? 'Livre' :
+                      {table.status === 'disponivel' ? 'Livre' :
                        table.status === 'ocupada' ? 'Ocupada' :
-                       table.status === 'reservada' ? 'Reservada' : 'Limpeza'}
+                       table.status === 'reservada' ? 'Reservada' : 'Manutenção'}
                     </span>
                   </div>
                   <span className="text-sm text-gray-500">{table.capacity} pessoas</span>
@@ -331,6 +351,28 @@ export default function GarcomDashboard() {
             </div>
           </Link>
 
+          <Link
+            href="/garcom/pagamentos"
+            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">Meus Pagamentos</div>
+              <div className="text-sm text-gray-500">Controle suas contas</div>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Nova seção para Atualizar */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Sistema</h3>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
           <button
             onClick={() => window.location.reload()}
             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -342,11 +384,41 @@ export default function GarcomDashboard() {
             </div>
             <div>
               <div className="font-medium text-gray-900">Atualizar Dados</div>
-              <div className="text-sm text-gray-500">Recarregar informações</div>
+              <div className="text-sm text-gray-500">Recarregar informações do sistema</div>
             </div>
           </button>
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
+        <div className="flex justify-around">
+          <button className="flex flex-col items-center py-2 px-4 text-green-600">
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="text-xs font-medium">Dashboard</span>
+          </button>
+          <Link href="/garcom/mesas" className="flex flex-col items-center py-2 px-4 text-gray-400">
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+            </svg>
+            <span className="text-xs">Mesas</span>
+          </Link>
+          <Link href="/garcom/pedidos" className="flex flex-col items-center py-2 px-4 text-gray-400">
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="text-xs">Pedidos</span>
+          </Link>
+          <Link href="/garcom/pagamentos" className="flex flex-col items-center py-2 px-4 text-gray-400">
+            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+            <span className="text-xs">Pagamentos</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 } 

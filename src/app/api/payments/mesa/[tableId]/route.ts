@@ -40,7 +40,7 @@ export async function POST(
 
     const { tableId } = await params;
     const body = await request.json();
-    const { paymentMethods } = body;
+    const { paymentMethods, status = 'pago' } = body;
 
     // Validações
     if (!paymentMethods || paymentMethods.length === 0) {
@@ -48,6 +48,17 @@ export async function POST(
         { 
           success: false, 
           error: 'Métodos de pagamento são obrigatórios' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validar status
+    if (!['pendente', 'pago'].includes(status)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Status deve ser "pendente" ou "pago"' 
         },
         { status: 400 }
       );
@@ -126,7 +137,7 @@ export async function POST(
         );
       }
 
-      const validMethods = ['dinheiro', 'cartao_credito', 'cartao_debito', 'pix', 'outro'];
+      const validMethods = ['dinheiro', 'cartao_credito', 'cartao_debito', 'pix', 'outro', 'pendente'];
       if (!validMethods.includes(method.type)) {
         return NextResponse.json(
           { 
@@ -151,7 +162,7 @@ export async function POST(
       orderIds: orderIds,
       totalAmount: totalAmount,
       paymentMethods: paymentMethods,
-      status: 'pago',
+      status: status,
       paidAt: new Date(),
       tableIdentification: table.identification,
       
@@ -164,16 +175,24 @@ export async function POST(
 
     await payment.save();
 
-    // Atualizar status dos pedidos para pago
-    await Order.updateMany(
-      { _id: { $in: orderIds } },
-      { status: 'pago', paymentId: payment._id }
-    );
+    // Atualizar status dos pedidos para pago apenas se o pagamento for finalizado
+    if (status === 'pago') {
+      await Order.updateMany(
+        { _id: { $in: orderIds } },
+        { status: 'pago', paymentId: payment._id }
+      );
+    }
 
     console.log('✅ Pagamento criado para mesa:', table.number);
+    console.log('- Status do pagamento:', status);
     console.log('- Total de pedidos:', orders.length);
     console.log('- Valor total:', totalAmount);
     console.log('- Identificação da mesa:', table.identification || 'Sem identificação');
+    if (status === 'pago') {
+      console.log('- Pedidos atualizados para status "pago"');
+    } else {
+      console.log('- Pedidos mantiveram status original (pagamento pendente)');
+    }
     console.log('- Comissão habilitada:', payment.waiterCommissionEnabled);
     if (payment.waiterCommissionEnabled && payment.waiterCommissionAmount > 0) {
       console.log('- Garçom:', waiterOrder?.waiterId?.username || 'Não identificado');

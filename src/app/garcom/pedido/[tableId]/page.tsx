@@ -174,7 +174,8 @@ export default function CriarPedido() {
           quantity: item.quantity,
           observations: item.observations
         })),
-        observations
+        observations,
+        estimatedTime: 15 // Tempo padrão mínimo de 15 minutos
       };
 
       const response = await fetch('/api/orders', {
