@@ -277,6 +277,21 @@ export async function POST(request: NextRequest) {
     console.log('- Total de itens:', populatedOrder.items.length);
     console.log('- Valor total:', populatedOrder.totalAmount);
 
+    // 🔔 SOCKET.IO - Emitir notificação de novo pedido
+    if ((global as any).io) {
+      console.log('📡 Emitindo evento Socket.IO para novo pedido...');
+      (global as any).io.emit('order_created', {
+        type: 'new_order',
+        title: 'Novo Pedido!',
+        message: `Mesa ${populatedOrder.tableId.number} - ${populatedOrder.items.length} item(s)`,
+        order: populatedOrder,
+        timestamp: new Date()
+      });
+      console.log('✅ Evento Socket.IO emitido com sucesso!');
+    } else {
+      console.log('⚠️ Socket.IO não disponível - pedido criado mas sem notificação em tempo real');
+    }
+
     return NextResponse.json({
       success: true,
       data: {

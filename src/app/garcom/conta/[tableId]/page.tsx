@@ -44,6 +44,10 @@ interface OrdersByStatus {
 interface Summary {
   totalOrders: number;
   totalAmount: number;
+  baseAmount: number;
+  waiterCommissionEnabled: boolean;
+  waiterCommissionPercentage: number;
+  waiterCommissionAmount: number;
   unpaidAmount: number;
   paidAmount: number;
   canPayNow: boolean;
@@ -72,6 +76,10 @@ export default function FecharConta() {
   const [summary, setSummary] = useState<Summary>({
     totalOrders: 0,
     totalAmount: 0,
+    baseAmount: 0,
+    waiterCommissionEnabled: false,
+    waiterCommissionPercentage: 0,
+    waiterCommissionAmount: 0,
     unpaidAmount: 0,
     paidAmount: 0,
     canPayNow: false
@@ -351,6 +359,29 @@ export default function FecharConta() {
               <p className="text-sm text-gray-600">Já Pago</p>
             </div>
           </div>
+
+          {/* Detalhamento da Comissão do Garçom */}
+          {summary.waiterCommissionEnabled && summary.waiterCommissionAmount > 0 && (
+            <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <h3 className="text-sm font-medium text-purple-900 mb-2">💰 Detalhamento do Valor</h3>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-purple-800">Valor dos pedidos:</span>
+                  <span className="font-medium text-purple-900">R$ {summary.baseAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-purple-800">Comissão do garçom ({summary.waiterCommissionPercentage}%):</span>
+                  <span className="font-medium text-purple-900">R$ {summary.waiterCommissionAmount.toFixed(2)}</span>
+                </div>
+                <div className="border-t border-purple-300 pt-1 mt-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-purple-900">Total com comissão:</span>
+                    <span className="font-bold text-purple-900">R$ {summary.totalAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Aviso informativo */}
           {summary.unpaidAmount > 0 && (

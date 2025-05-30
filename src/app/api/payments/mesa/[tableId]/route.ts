@@ -108,9 +108,20 @@ export async function POST(
       );
     }
 
-    // Calcular valor total de todos os pedidos
-    const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    // Calcular valor base de todos os pedidos (sem comissão)
+    const baseAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
     const orderIds = orders.map(order => order._id);
+
+    // Obter configurações de comissão
+    const settings = await (Settings as any).getSettings();
+    
+    // Calcular comissão automaticamente
+    const commissionAmount = settings.waiterCommissionEnabled 
+      ? settings.calculateCommission(baseAmount)
+      : 0;
+    
+    // Valor total incluindo comissão
+    const totalAmount = baseAmount + commissionAmount;
 
     // Validar métodos de pagamento
     const totalMethodsAmount = paymentMethods.reduce((sum: number, method: any) => sum + method.amount, 0);
@@ -119,7 +130,7 @@ export async function POST(
       return NextResponse.json(
         { 
           success: false, 
-          error: `Total dos métodos de pagamento (${totalMethodsAmount.toFixed(2)}) não confere com o valor total da mesa (${totalAmount.toFixed(2)})` 
+          error: `Total dos métodos de pagamento (${totalMethodsAmount.toFixed(2)}) não confere com o valor total da mesa (${totalAmount.toFixed(2)})${commissionAmount > 0 ? ` - incluindo ${settings.waiterCommissionPercentage}% de comissão (R$ ${commissionAmount.toFixed(2)})` : ''}` 
         },
         { status: 400 }
       );
@@ -149,9 +160,6 @@ export async function POST(
       }
     }
 
-    // Obter configurações de comissão
-    const settings = await (Settings as any).getSettings();
-    
     // Identificar o garçom responsável (primeiro pedido entregue)
     const waiterOrder = orders.find(order => order.waiterId);
     const waiterId = waiterOrder?.waiterId;
@@ -160,7 +168,8 @@ export async function POST(
     const payment = new Payment({
       tableId: tableId,
       orderIds: orderIds,
-      totalAmount: totalAmount,
+      baseAmount: baseAmount,
+      totalAmount: totalAmount, // Será recalculado no middleware
       paymentMethods: paymentMethods,
       status: status,
       paidAt: new Date(),
@@ -186,7 +195,11 @@ export async function POST(
     console.log('✅ Pagamento criado para mesa:', table.number);
     console.log('- Status do pagamento:', status);
     console.log('- Total de pedidos:', orders.length);
-    console.log('- Valor total:', totalAmount);
+    console.log('- Valor base:', baseAmount.toFixed(2));
+    if (commissionAmount > 0) {
+      console.log('- Comissão do garçom:', `${settings.waiterCommissionPercentage}% = R$ ${commissionAmount.toFixed(2)}`);
+    }
+    console.log('- Valor total:', payment.totalAmount.toFixed(2));
     console.log('- Identificação da mesa:', table.identification || 'Sem identificação');
     if (status === 'pago') {
       console.log('- Pedidos atualizados para status "pago"');
@@ -283,6 +296,9 @@ export async function GET(
       status: { $in: ['preparando', 'pronto', 'entregue'] } // Apenas sessão atual
     }).populate('waiterId', 'username');
 
+    // Obter configurações para taxa de serviço
+    const settings = await (Settings as any).getSettings();
+
     // Separar pedidos por status
     const ordersByStatus = {
       preparando: orders.filter(o => o.status === 'preparando'),
@@ -292,8 +308,17 @@ export async function GET(
     };
 
     // Calcular totais apenas da sessão atual
-    const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-    const unpaidAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0); // Todos os pedidos não pagos
+    const baseAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    
+    // Calcular comissão automaticamente
+    const commissionAmount = settings.waiterCommissionEnabled 
+      ? settings.calculateCommission(baseAmount)
+      : 0;
+    
+    // Valor total incluindo comissão
+    const totalAmountWithCommission = baseAmount + commissionAmount;
+    
+    const unpaidAmount = totalAmountWithCommission; // Valor total com comissão
     const paidAmount = 0; // Não há pedidos pagos na sessão atual
 
     // Verificar se já existe pagamento pendente (em processamento)
@@ -310,7 +335,11 @@ export async function GET(
         ordersByStatus: ordersByStatus,
         summary: {
           totalOrders: orders.length,
-          totalAmount: totalAmount,
+          totalAmount: totalAmountWithCommission,
+          baseAmount: baseAmount,
+          waiterCommissionEnabled: settings.waiterCommissionEnabled,
+          waiterCommissionPercentage: settings.waiterCommissionPercentage,
+          waiterCommissionAmount: commissionAmount,
           unpaidAmount: unpaidAmount,
           paidAmount: paidAmount,
           canPayNow: unpaidAmount > 0 && !existingPayment

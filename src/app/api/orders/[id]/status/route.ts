@@ -114,6 +114,59 @@ export async function PATCH(
       .populate('tableId', 'number capacity status')
       .populate('waiterId', 'username email');
 
+    console.log(`✅ Status do pedido ${updatedOrder._id} atualizado para '${status}'`);
+
+    // 🔔 SOCKET.IO - Emitir notificação de atualização de status
+    if ((global as any).io) {
+      console.log('📡 Emitindo evento Socket.IO para atualização de status...');
+      
+      const notifications: Record<string, { title: string; message: string; target: string[] }> = {
+        'preparando': {
+          title: 'Pedido em Preparo',
+          message: `Mesa ${updatedOrder.tableId.number} - Pedido sendo preparado`,
+          target: [`waiter_${updatedOrder.waiterId._id}`]
+        },
+        'pronto': {
+          title: 'Pedido Pronto! 🍽️',
+          message: `Mesa ${updatedOrder.tableId.number} - Pedido pronto para entrega`,
+          target: [`waiter_${updatedOrder.waiterId._id}`, 'role_recepcionista']
+        },
+        'entregue': {
+          title: 'Pedido Entregue ✅',
+          message: `Mesa ${updatedOrder.tableId.number} - Pedido entregue com sucesso`,
+          target: ['role_recepcionista']
+        }
+      };
+
+      const notification = notifications[status];
+      if (notification) {
+        notification.target.forEach((target: string) => {
+          (global as any).io.to(target).emit('order_notification', {
+            type: 'order_update',
+            title: notification.title,
+            message: notification.message,
+            order: updatedOrder,
+            status: status,
+            timestamp: new Date()
+          });
+        });
+        console.log(`✅ Evento Socket.IO emitido para targets: ${notification.target.join(', ')}`);
+      }
+
+      // Emitir também um evento geral para admins
+      (global as any).io.to('role_recepcionista').emit('order_status_updated', {
+        type: 'order_status_updated',
+        order: updatedOrder,
+        previousStatus: currentStatus,
+        newStatus: status,
+        timestamp: new Date()
+      });
+      
+      console.log('✅ Evento Socket.IO de atualização de status emitido com sucesso!');
+    } else {
+      console.log('⚠️ Socket.IO não disponível - status atualizado mas sem notificação em tempo real');
+    }
+
     return NextResponse.json({
       success: true,
       data: {

@@ -41,6 +41,7 @@ interface Payment {
     identification?: string;
   };
   orderIds: string[];
+  baseAmount: number;
   totalAmount: number;
   paymentMethods: Array<{
     type: string;
@@ -1078,6 +1079,29 @@ export default function AdminPagamentos() {
                     </div>
                   </div>
 
+                  {/* Detalhamento do Valor com Comissão */}
+                  {selectedPayment.waiterCommissionEnabled && selectedPayment.waiterCommissionAmount > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-blue-800 mb-3">💰 Detalhamento do Valor</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-blue-700">Valor dos pedidos:</span>
+                          <span className="font-medium text-blue-900">{formatCurrency(selectedPayment.baseAmount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-blue-700">Comissão do garçom ({selectedPayment.waiterCommissionPercentage}%):</span>
+                          <span className="font-medium text-blue-900">{formatCurrency(selectedPayment.waiterCommissionAmount)}</span>
+                        </div>
+                        <div className="border-t border-blue-300 pt-1 mt-2">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-blue-800">Total com comissão:</span>
+                            <span className="font-bold text-blue-900">{formatCurrency(selectedPayment.totalAmount)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Métodos de Pagamento */}
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">Métodos de Pagamento</h3>
@@ -1131,9 +1155,6 @@ export default function AdminPagamentos() {
                             {formatCurrency(selectedPayment.waiterCommissionAmount)}
                           </div>
                         </div>
-                      </div>
-                      <div className="mt-3 text-sm text-purple-600">
-                        💰 Comissão calculada automaticamente sobre o valor total do pagamento
                       </div>
                     </div>
                   )}

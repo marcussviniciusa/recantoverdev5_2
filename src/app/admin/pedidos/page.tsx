@@ -179,22 +179,36 @@ export default function PedidosPage() {
   // Escutar eventos Socket.IO
   useEffect(() => {
     if (socket) {
-      const handleNewOrder = (newOrder: Order) => {
-        setOrders(prev => [newOrder, ...prev]);
+      console.log('🔌 Configurando listeners Socket.IO...');
+      
+      const handleNewOrder = (data: any) => {
+        console.log('🔔 Novo pedido recebido via Socket.IO:', data);
+        if (data.order) {
+          setOrders(prev => [data.order, ...prev]);
+          console.log('✅ Pedido adicionado à lista automaticamente');
+        }
       };
 
-      const handleOrderStatusUpdate = (updatedOrder: Order) => {
-        setOrders(prev => prev.map(order => 
-          order._id === updatedOrder._id ? updatedOrder : order
-        ));
+      const handleOrderStatusUpdate = (data: any) => {
+        console.log('🔄 Status do pedido atualizado via Socket.IO:', data);
+        if (data.order) {
+          setOrders(prev => prev.map(order => 
+            order._id === data.order._id ? data.order : order
+          ));
+          console.log('✅ Status do pedido atualizado automaticamente');
+        }
       };
 
-      socket.on('order_created', handleNewOrder);
-      socket.on('order_status_updated', handleOrderStatusUpdate);
+      // Escutar eventos conforme emitidos pelo servidor Socket.IO
+      socket.on('new_order', handleNewOrder);
+      socket.on('order_notification', handleOrderStatusUpdate);
+
+      console.log('✅ Listeners Socket.IO configurados');
 
       return () => {
-        socket.off('order_created', handleNewOrder);
-        socket.off('order_status_updated', handleOrderStatusUpdate);
+        console.log('🔌 Removendo listeners Socket.IO...');
+        socket.off('new_order', handleNewOrder);
+        socket.off('order_notification', handleOrderStatusUpdate);
       };
     }
   }, [socket]);

@@ -9,7 +9,8 @@ export interface IPaymentMethod {
 export interface IPayment extends Document {
   tableId: mongoose.Types.ObjectId;
   orderIds: mongoose.Types.ObjectId[];
-  totalAmount: number;
+  baseAmount: number; // Valor base dos pedidos
+  totalAmount: number; // Valor total (base + comissão)
   paymentMethods: IPaymentMethod[];
   status: 'pendente' | 'pago' | 'cancelado';
   paidAmount: number;
@@ -18,11 +19,11 @@ export interface IPayment extends Document {
   paidAt?: Date;
   tableIdentification?: string;
   
-  // Campos de comissão do garçom
+  // Campos de comissão do garçom (como taxa adicional)
   waiterId?: mongoose.Types.ObjectId;
   waiterCommissionEnabled: boolean;
   waiterCommissionPercentage: number;
-  waiterCommissionAmount: number;
+  waiterCommissionAmount: number; // Valor da comissão (taxa adicional)
   
   createdAt: Date;
   updatedAt: Date;
@@ -65,6 +66,11 @@ const PaymentSchema = new Schema<IPayment>({
     type: [Schema.Types.ObjectId],
     ref: 'Order',
     required: [true, 'IDs dos pedidos são obrigatórios']
+  },
+  baseAmount: {
+    type: Number,
+    required: [true, 'Valor base é obrigatório'],
+    min: [0.01, 'Valor base deve ser maior que zero']
   },
   totalAmount: {
     type: Number,
@@ -139,6 +145,12 @@ PaymentSchema.index({ createdAt: -1 });
 
 // Middleware pré-save para calcular valores automaticamente
 PaymentSchema.pre<IPayment>('save', function(next) {
+  // Calcular comissão do garçom baseada no valor base
+  this.waiterCommissionAmount = this.calculateWaiterCommission();
+  
+  // Calcular valor total (base + comissão)
+  this.totalAmount = this.baseAmount + this.waiterCommissionAmount;
+  
   // Calcular valor pago total
   this.paidAmount = this.calculatePaidAmount();
   
@@ -151,9 +163,6 @@ PaymentSchema.pre<IPayment>('save', function(next) {
   } else {
     this.changeAmount = 0;
   }
-  
-  // Calcular comissão do garçom
-  this.waiterCommissionAmount = this.calculateWaiterCommission();
   
   // Se o valor pago for igual ou maior que o total, marcar como pago
   // EXCETO se for um pagamento pendente (com método 'pendente')
@@ -185,7 +194,7 @@ PaymentSchema.methods.calculateRemainingAmount = function(): number {
 // Método para calcular valor da comissão do garçom
 PaymentSchema.methods.calculateWaiterCommission = function(): number {
   if (!this.waiterCommissionEnabled || this.waiterCommissionPercentage <= 0) return 0;
-  return Math.round((this.totalAmount * this.waiterCommissionPercentage / 100) * 100) / 100;
+  return Math.round((this.baseAmount * this.waiterCommissionPercentage / 100) * 100) / 100;
 };
 
 // Método para adicionar método de pagamento

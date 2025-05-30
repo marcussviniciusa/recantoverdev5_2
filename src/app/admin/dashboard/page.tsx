@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import RestaurantMap from '../../../components/RestaurantMap';
 
 interface Stats {
   totalTables: number;
@@ -199,6 +200,17 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Mapa das Mesas em Tempo Real */}
+        <div className="mb-8">
+          <RestaurantMap 
+            onTableClick={(table) => {
+              console.log('Mesa clicada:', table);
+              // Aqui você pode adicionar navegação ou ações específicas
+            }}
+            refreshInterval={15000} // Atualiza a cada 15 segundos
+          />
         </div>
 
         {/* Quick Actions */}
