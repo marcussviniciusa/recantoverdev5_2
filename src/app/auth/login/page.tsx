@@ -1,35 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { motion } from 'framer-motion';
+import AnimatedButton from '../../../components/ui/AnimatedButton';
+import AnimatedCard from '../../../components/ui/AnimatedCard';
+import { AnimatedPageContainer } from '../../../components/ui/PageTransition';
 
-export default function LoginPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const role = searchParams.get('role');
-
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Auto-completar credenciais baseado no role
-  useEffect(() => {
-    if (role === 'recepcionista') {
-      setFormData({
-        email: 'admin@recantoverde.com',
-        password: 'admin123'
-      });
-    } else if (role === 'garcom') {
-      setFormData({
-        email: 'joao@recantoverde.com',
-        password: 'garcom123'
-      });
-    }
-  }, [role]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get('role');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,9 +25,9 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -71,184 +56,169 @@ export default function LoginPage() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const roleInfo = {
-    recepcionista: {
-      title: 'Recepcionista',
-      subtitle: 'Acesso administrativo completo',
-      color: 'blue',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      )
-    },
-    garcom: {
-      title: 'Garçom',
-      subtitle: 'Interface mobile otimizada',
-      color: 'green',
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      )
-    }
-  };
-
-  const currentRole = role && roleInfo[role as keyof typeof roleInfo] 
-    ? roleInfo[role as keyof typeof roleInfo] 
-    : { title: 'Login', subtitle: 'Sistema Recanto Verde', color: 'green', icon: null };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center mb-6 group">
-            <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mr-3">
-              <span className="text-white text-xl font-bold">RV</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        {/* Background Effects */}
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            className="absolute -top-40 -right-40 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-400/20 rounded-full blur-3xl"
+            animate={{
+              scale: [1.2, 1, 1.2],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        </div>
+
+        <div className="w-full max-w-md space-y-8 relative z-10">
+          {/* Header */}
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            <motion.h1
+              className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-green-600 bg-clip-text text-transparent"
+              animate={{
+                backgroundPosition: ['0%', '100%', '0%'],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
               Recanto Verde
-            </span>
-          </Link>
-
-          <div className={`w-16 h-16 bg-${currentRole.color}-100 rounded-full flex items-center justify-center mx-auto mb-4`}>
-            <div className={`text-${currentRole.color}-600`}>
-              {currentRole.icon}
-            </div>
-          </div>
-          
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {currentRole.title}
-          </h1>
-          <p className="text-gray-600">
-            {currentRole.subtitle}
-          </p>
-        </div>
-
-        {/* Login Form */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex">
-                  <svg className="w-5 h-5 text-red-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="text-red-800 text-sm">{error}</div>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                placeholder="seu@email.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Senha
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                placeholder="Sua senha"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full bg-${currentRole.color}-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-${currentRole.color}-700 focus:ring-2 focus:ring-${currentRole.color}-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+            </motion.h1>
+            <motion.p
+              className="mt-2 text-gray-600 dark:text-gray-400"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
             >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Entrando...
-                </div>
-              ) : (
-                'Entrar'
+              {roleParam === 'garcom' ? 'Acesso para Garçons' : 'Sistema de Gestão'}
+            </motion.p>
+          </motion.div>
+
+          {/* Login Form */}
+          <AnimatedCard
+            variant="glass"
+            padding="lg"
+            className="backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-white/20 shadow-2xl"
+            delay={0.3}
+          >
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <motion.div
+                  className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 px-4 py-3 rounded-xl"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                >
+                  {error}
+                </motion.div>
               )}
-            </button>
-          </form>
 
-          {/* Credenciais de Teste */}
-          {role && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
-                💡 Credenciais de Teste
-              </h3>
-              <div className="text-xs text-gray-600">
-                <div><strong>Email:</strong> {formData.email}</div>
-                <div><strong>Senha:</strong> {formData.password}</div>
-              </div>
-            </div>
-          )}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
+                <label htmlFor="email" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                  📧 Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="
+                    block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                    rounded-xl shadow-sm bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm
+                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                    transition-all duration-200 ease-in-out
+                    placeholder-gray-500 dark:placeholder-gray-400
+                    text-gray-900 dark:text-white font-medium
+                  "
+                  placeholder="Digite seu email"
+                />
+              </motion.div>
 
-          {/* Links */}
-          <div className="mt-6 text-center">
-            <Link 
-              href="/" 
-              className="text-sm text-gray-600 hover:text-green-600 transition-colors"
-            >
-              ← Voltar para página inicial
-            </Link>
-          </div>
-        </div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
+                <label htmlFor="password" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+                  🔒 Senha
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="
+                    block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                    rounded-xl shadow-sm bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm
+                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                    transition-all duration-200 ease-in-out
+                    placeholder-gray-500 dark:placeholder-gray-400
+                    text-gray-900 dark:text-white font-medium
+                  "
+                  placeholder="Digite sua senha"
+                />
+              </motion.div>
 
-        {/* Switch de Tipo de Usuário */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600 mb-4">Ou acesse como:</p>
-          <div className="flex gap-4 justify-center">
-            <Link
-              href="/auth/login?role=recepcionista"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                role === 'recepcionista' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'
-              }`}
-            >
-              👨‍💼 Recepcionista
-            </Link>
-            <Link
-              href="/auth/login?role=garcom"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                role === 'garcom' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-white text-green-600 border border-green-600 hover:bg-green-50'
-              }`}
-            >
-              👨‍🍳 Garçom
-            </Link>
-          </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+              >
+                <AnimatedButton
+                  type="submit"
+                  loading={loading}
+                  fullWidth
+                  size="lg"
+                  variant="primary"
+                  className="font-semibold"
+                >
+                  {loading ? 'Entrando...' : 'Entrar'}
+                </AnimatedButton>
+              </motion.div>
+            </form>
+          </AnimatedCard>
+
+          {/* Footer */}
+          <motion.div
+            className="text-center text-sm text-gray-500 dark:text-gray-400"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+          >
+            © 2024 Recanto Verde. Todos os direitos reservados.
+          </motion.div>
         </div>
       </div>
-    </div>
+    </AnimatedPageContainer>
   );
 } 

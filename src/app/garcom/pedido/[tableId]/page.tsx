@@ -3,7 +3,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useSocket } from '../../../../lib/socket';
+import AnimatedCard from '../../../../components/ui/AnimatedCard';
+import AnimatedButton from '../../../../components/ui/AnimatedButton';
+import GarcomBottomNav from '../../../../components/ui/GarcomBottomNav';
+import { AnimatedPageContainer, StaggeredGrid, StaggeredItem } from '../../../../components/ui/PageTransition';
+import { 
+  ShoppingCartIcon, 
+  PlusIcon, 
+  MinusIcon,
+  CurrencyDollarIcon,
+  DocumentTextIcon,
+  MagnifyingGlassIcon
+} from '@heroicons/react/24/outline';
 
 interface Product {
   _id: string;
@@ -208,237 +221,365 @@ export default function CriarPedido() {
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando cardápio...</p>
+      <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="min-h-screen flex items-center justify-center pb-24">
+          <AnimatedCard variant="glass" padding="xl" className="text-center">
+            <motion.div
+              className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.h2
+              className="text-xl font-semibold text-gray-800 dark:text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              Carregando cardápio...
+            </motion.h2>
+          </AnimatedCard>
         </div>
-      </div>
+        <GarcomBottomNav />
+      </AnimatedPageContainer>
     );
   }
 
   if (!table) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Mesa não encontrada</h2>
-          <Link 
-            href="/garcom/mesas"
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-          >
-            Voltar para Mesas
-          </Link>
+      <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="min-h-screen flex items-center justify-center pb-24">
+          <AnimatedCard variant="default" padding="xl" className="text-center">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Mesa não encontrada</h2>
+            <Link href="/garcom/mesas">
+              <AnimatedButton variant="primary" size="lg">
+                Voltar para Mesas
+              </AnimatedButton>
+            </Link>
+          </AnimatedCard>
         </div>
-      </div>
+        <GarcomBottomNav />
+      </AnimatedPageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <header className="bg-white shadow">
+      <motion.header
+        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 shadow-lg sticky top-0 z-40"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link 
-                href="/garcom/mesas"
-                className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3 hover:bg-gray-200"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+            <motion.div
+              className="flex items-center"
+              initial={{ x: -50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+            >
+              <Link href="/garcom/mesas">
+                <motion.div 
+                  className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center mr-3 shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-700"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </motion.div>
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Novo Pedido</h1>
-                <p className="text-sm text-gray-500">Mesa {table.number} • {table.currentCustomers} clientes</p>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Novo Pedido</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Mesa {table.number} • {table.currentCustomers} clientes</p>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">Total: R$ {getTotalAmount().toFixed(2)}</p>
-              <p className="text-xs text-gray-500">{getTotalItems()} itens</p>
-            </div>
+            </motion.div>
+
+            <motion.div
+              className="text-right"
+              initial={{ x: 50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Total: {formatCurrency(getTotalAmount())}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{getTotalItems()} itens</p>
+            </motion.div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Produtos */}
           <div className="lg:col-span-2">
             {/* Busca e Filtros */}
-            <div className="bg-white rounded-xl shadow p-6 mb-6">
-              <div className="space-y-4">
-                {/* Busca */}
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Buscar produtos..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+            >
+              <AnimatedCard variant="default" padding="lg" className="mb-6">
+                <div className="space-y-4">
+                  {/* Busca */}
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar produtos..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                    />
+                  </div>
 
-                {/* Categorias */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setSelectedCategory('')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      selectedCategory === '' 
-                        ? 'bg-green-600 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Todos
-                  </button>
-                  {categories.map(category => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        selectedCategory === category 
-                          ? 'bg-green-600 text-white' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                  {/* Categorias */}
+                  <div className="flex flex-wrap gap-2">
+                    <AnimatedButton
+                      variant={selectedCategory === '' ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => setSelectedCategory('')}
                     >
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </button>
-                  ))}
+                      Todos
+                    </AnimatedButton>
+                    {categories.map(category => (
+                      <AnimatedButton
+                        key={category}
+                        variant={selectedCategory === category ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => setSelectedCategory(category)}
+                      >
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </AnimatedButton>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </AnimatedCard>
+            </motion.div>
 
             {/* Lista de Produtos */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredProducts.map(product => (
-                <div key={product._id} className="bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{product.description}</p>
-                      <p className="text-lg font-bold text-green-600">R$ {product.price.toFixed(2)}</p>
-                      {product.preparationTime && (
-                        <p className="text-xs text-gray-500 mt-1">⏱️ {product.preparationTime} min</p>
-                      )}
-                    </div>
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
+              {filteredProducts.length === 0 ? (
+                <AnimatedCard variant="default" padding="xl" className="text-center">
+                  <div className="text-gray-500 dark:text-gray-400">
+                    <MagnifyingGlassIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">Nenhum produto encontrado</h3>
+                    <p className="text-sm">Tente ajustar os filtros ou termo de busca.</p>
                   </div>
-                  
-                  <button
-                    onClick={() => addToCart(product)}
-                    className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                  >
-                    Adicionar ao Pedido
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {filteredProducts.length === 0 && (
-              <div className="bg-white rounded-xl shadow p-12 text-center">
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum produto encontrado</h3>
-                <p className="text-gray-600">Tente ajustar os filtros ou termo de busca.</p>
-              </div>
-            )}
+                </AnimatedCard>
+              ) : (
+                <StaggeredGrid className="grid grid-cols-1 md:grid-cols-2 gap-4" staggerDelay={0.1}>
+                  {filteredProducts.map((product, index) => (
+                    <StaggeredItem key={product._id}>
+                      <AnimatedCard variant="default" padding="lg" hoverable={true} className="h-full">
+                        <div className="flex flex-col h-full">
+                          <div className="flex-1 mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                              {product.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                              {product.description}
+                            </p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-lg font-bold text-primary-600">
+                                {formatCurrency(product.price)}
+                              </span>
+                              {product.preparationTime && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                                  ⏱️ {product.preparationTime} min
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <AnimatedButton
+                            variant="primary"
+                            size="md"
+                            fullWidth
+                            onClick={() => addToCart(product)}
+                          >
+                            <PlusIcon className="w-4 h-4 mr-2" />
+                            Adicionar ao Pedido
+                          </AnimatedButton>
+                        </div>
+                      </AnimatedCard>
+                    </StaggeredItem>
+                  ))}
+                </StaggeredGrid>
+              )}
+            </motion.div>
           </div>
 
           {/* Carrinho */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow p-6 sticky top-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Carrinho</h2>
-
-              {cart.length === 0 ? (
-                <div className="text-center py-8">
-                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0v0a2 2 0 104 0m-4 0a2 2 0 104 0" />
-                  </svg>
-                  <p className="text-gray-600">Carrinho vazio</p>
-                  <p className="text-sm text-gray-500 mt-1">Adicione produtos do cardápio</p>
+          <motion.div
+            className="lg:col-span-1"
+            initial={{ x: 50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            <div className="sticky top-24">
+              <AnimatedCard variant="glass" padding="lg" className="backdrop-blur-xl">
+                <div className="flex items-center gap-2 mb-4">
+                  <ShoppingCartIcon className="w-6 h-6 text-primary-600" />
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Carrinho</h2>
+                  {cart.length > 0 && (
+                    <span className="bg-primary-500 text-white text-xs px-2 py-1 rounded-full">
+                      {getTotalItems()}
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <>
-                  <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
-                    {cart.map(item => (
-                      <div key={item.product._id} className="border-b border-gray-200 pb-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium text-gray-900">{item.product.name}</h4>
-                          <button
-                            onClick={() => removeFromCart(item.product._id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center">
+
+                {cart.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ShoppingCartIcon className="w-12 h-12 text-gray-400 mx-auto mb-4 opacity-50" />
+                    <p className="text-gray-600 dark:text-gray-400 font-medium">Carrinho vazio</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                      Adicione produtos do cardápio
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
+                      {cart.map((item, index) => (
+                        <motion.div
+                          key={item.product._id}
+                          className="border-b border-gray-200 dark:border-gray-700 pb-4"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                                {item.product.name}
+                              </h4>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {formatCurrency(item.product.price)} cada
+                              </p>
+                            </div>
                             <button
-                              onClick={() => updateCartItem(item.product._id, item.quantity - 1, item.observations)}
-                              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"
+                              onClick={() => removeFromCart(item.product._id)}
+                              className="text-red-500 hover:text-red-700 p-1"
                             >
-                              -
-                            </button>
-                            <span className="mx-3 font-medium">{item.quantity}</span>
-                            <button
-                              onClick={() => updateCartItem(item.product._id, item.quantity + 1, item.observations)}
-                              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200"
-                            >
-                              +
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
                             </button>
                           </div>
-                          <span className="font-bold text-green-600">R$ {item.totalPrice.toFixed(2)}</span>
-                        </div>
 
-                        <input
-                          type="text"
-                          placeholder="Observações..."
-                          value={item.observations}
-                          onChange={(e) => updateCartItem(item.product._id, item.quantity, e.target.value)}
-                          className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => updateCartItem(
+                                  item.product._id, 
+                                  Math.max(1, item.quantity - 1), 
+                                  item.observations
+                                )}
+                                className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600"
+                              >
+                                <MinusIcon className="w-4 h-4" />
+                              </button>
+                              <span className="w-8 text-center font-medium text-gray-900 dark:text-white">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() => updateCartItem(
+                                  item.product._id, 
+                                  item.quantity + 1, 
+                                  item.observations
+                                )}
+                                className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-600"
+                              >
+                                <PlusIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <span className="font-medium text-primary-600">
+                              {formatCurrency(item.totalPrice)}
+                            </span>
+                          </div>
 
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="flex justify-between items-center text-lg font-bold mb-4">
-                      <span>Total:</span>
-                      <span className="text-green-600">R$ {getTotalAmount().toFixed(2)}</span>
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Observações..."
+                              value={item.observations}
+                              onChange={(e) => updateCartItem(
+                                item.product._id, 
+                                item.quantity, 
+                                e.target.value
+                              )}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
 
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Observações gerais
+                    {/* Observações Gerais */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <DocumentTextIcon className="w-4 h-4 inline mr-1" />
+                        Observações Gerais
                       </label>
                       <textarea
                         value={observations}
                         onChange={(e) => setObservations(e.target.value)}
-                        placeholder="Observações sobre o pedido..."
+                        placeholder="Observações para o pedido..."
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 resize-none"
                       />
                     </div>
 
-                    <button
+                    {/* Total */}
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-6">
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-medium text-gray-900 dark:text-white">Total:</span>
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-primary-600">
+                            {formatCurrency(getTotalAmount())}
+                          </span>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botão Enviar */}
+                    <AnimatedButton
+                      variant="success"
+                      size="lg"
+                      fullWidth
+                      loading={submitting}
                       onClick={submitOrder}
-                      disabled={submitting || cart.length === 0}
-                      className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={cart.length === 0}
                     >
-                      {submitting ? 'Enviando...' : 'Finalizar Pedido'}
-                    </button>
-                  </div>
-                </>
-              )}
+                      {submitting ? 'Enviando...' : '🚀 Enviar Pedido'}
+                    </AnimatedButton>
+                  </>
+                )}
+              </AnimatedCard>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      </main>
+
+      <GarcomBottomNav />
+    </AnimatedPageContainer>
   );
 } 

@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { useSocket } from '../../../lib/socket';
+import AnimatedButton from '../../../components/ui/AnimatedButton';
+import AnimatedCard from '../../../components/ui/AnimatedCard';
+import AnimatedModal from '../../../components/ui/AnimatedModal';
+import GarcomBottomNav from '../../../components/ui/GarcomBottomNav';
+import { AnimatedPageContainer, StaggeredGrid, StaggeredItem } from '../../../components/ui/PageTransition';
 
 interface Table {
   _id: string;
@@ -144,11 +150,21 @@ export default function GarcomMesas() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'disponivel': return 'bg-green-100 text-green-800 border-green-200';
-      case 'ocupada': return 'bg-red-100 text-red-800 border-red-200';
-      case 'reservada': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'manutencao': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'disponivel': return 'from-green-400 to-green-500 text-white';
+      case 'ocupada': return 'from-red-400 to-red-500 text-white';
+      case 'reservada': return 'from-amber-400 to-amber-500 text-white';
+      case 'manutencao': return 'from-gray-400 to-gray-500 text-white';
+      default: return 'from-gray-400 to-gray-500 text-white';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'disponivel': return '✅';
+      case 'ocupada': return '🔴';
+      case 'reservada': return '⏰';
+      case 'manutencao': return '🔧';
+      default: return '❓';
     }
   };
 
@@ -169,278 +185,326 @@ export default function GarcomMesas() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando mesas...</p>
+      <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 to-green-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="min-h-screen flex items-center justify-center">
+          <AnimatedCard variant="glass" padding="xl" className="text-center">
+            <motion.div
+              className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.h2
+              className="text-xl font-semibold text-gray-800 dark:text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              Carregando mesas...
+            </motion.h2>
+          </AnimatedCard>
         </div>
-      </div>
+      </AnimatedPageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <header className="bg-white shadow">
+      <motion.header
+        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 shadow-lg sticky top-0 z-40"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+            <motion.div
+              className="flex items-center"
+              initial={{ x: -50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white text-lg font-bold">RV</span>
               </div>
-              <div className="ml-3">
-                <h1 className="text-xl font-bold text-gray-900">Recanto Verde</h1>
-                <p className="text-sm text-gray-500">Garçom - {userName}</p>
+              <div className="ml-4">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Recanto Verde</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">👨‍🍳 Garçom - {userName}</p>
               </div>
-            </div>
-            <button
-              onClick={logout}
-              className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+            </motion.div>
+
+            <motion.div
+              className="flex items-center gap-3"
+              initial={{ x: 50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
             >
-              Sair
-            </button>
+              <AnimatedButton
+                variant="secondary"
+                size="sm"
+                onClick={logout}
+                className="font-medium"
+              >
+                🚪 Sair
+              </AnimatedButton>
+            </motion.div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Mesas</h2>
-          <p className="mt-1 text-gray-600">
-            Gerencie suas mesas e atendimentos
-          </p>
-        </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+        {/* Stats Summary */}
+        <motion.div
+          className="mb-8"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Disponíveis', count: tables.filter(t => t.status === 'disponivel').length, color: 'from-green-400 to-green-500', icon: '✅' },
+              { label: 'Ocupadas', count: tables.filter(t => t.status === 'ocupada').length, color: 'from-red-400 to-red-500', icon: '🔴' },
+              { label: 'Reservadas', count: tables.filter(t => t.status === 'reservada').length, color: 'from-amber-400 to-amber-500', icon: '⏰' },
+              { label: 'Manutenção', count: tables.filter(t => t.status === 'manutencao').length, color: 'from-gray-400 to-gray-500', icon: '🔧' },
+            ].map((stat, index) => (
+              <AnimatedCard
+                key={stat.label}
+                variant="glass"
+                padding="md"
+                className={`bg-gradient-to-br ${stat.color} text-white border-0`}
+                delay={0.1 * index}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white/80 text-sm font-medium">{stat.label}</p>
+                    <p className="text-2xl font-bold">{stat.count}</p>
+                  </div>
+                  <span className="text-2xl">{stat.icon}</span>
+                </div>
+              </AnimatedCard>
+            ))}
+          </div>
+        </motion.div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">
-                {tables.filter(t => t.status === 'disponivel').length}
-              </p>
-              <p className="text-sm text-gray-600">Disponíveis</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">
-                {tables.filter(t => t.status === 'ocupada').length}
-              </p>
-              <p className="text-sm text-gray-600">Ocupadas</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">
-                {tables.filter(t => t.status === 'reservada').length}
-              </p>
-              <p className="text-sm text-gray-600">Reservadas</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-600">
-                {tables.length}
-              </p>
-              <p className="text-sm text-gray-600">Total</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Mesas Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {tables.map((table) => (
-            <div
-              key={table._id}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
+        {/* Tables Grid */}
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              🪑 Mesas ({tables.length})
+            </h2>
+            <AnimatedButton
+              variant="secondary"
+              size="sm"
+              onClick={loadTables}
+              className="font-medium"
             >
-              {/* Número da Mesa */}
-              <div className="text-center mb-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-xl font-bold text-gray-700">
-                    {table.number}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600">Mesa {table.number}</p>
-              </div>
-
-              {/* Status */}
-              <div className="mb-4">
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(table.status)}`}>
-                  {getStatusText(table.status)}
-                </span>
-              </div>
-
-              {/* Info */}
-              <div className="space-y-2 text-sm text-gray-600 mb-4">
-                <div className="flex justify-between">
-                  <span>Capacidade:</span>
-                  <span className="font-medium">{table.capacity} pessoas</span>
-                </div>
-                {table.currentCustomers && (
-                  <div className="flex justify-between">
-                    <span>Clientes:</span>
-                    <span className="font-medium">{table.currentCustomers}</span>
-                  </div>
-                )}
-                {table.identification && (
-                  <div className="flex justify-between">
-                    <span>Identificação:</span>
-                    <span className="font-medium text-xs text-blue-600">{table.identification}</span>
-                  </div>
-                )}
-                {table.assignedWaiter && (
-                  <div className="flex justify-between">
-                    <span>Garçom:</span>
-                    <span className="font-medium text-xs">{table.assignedWaiter.username}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-2">
-                {table.status === 'disponivel' && (
-                  <button
-                    onClick={() => openTableModal(table)}
-                    className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                  >
-                    Abrir Mesa
-                  </button>
-                )}
-                
-                {table.status === 'ocupada' && (
-                  <>
-                    <Link
-                      href={`/garcom/pedido/${table._id}`}
-                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors text-center block"
-                    >
-                      Novo Pedido
-                    </Link>
-                    <Link
-                      href={`/garcom/conta/${table._id}`}
-                      className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-yellow-700 transition-colors text-center block"
-                    >
-                      Fechar Conta
-                    </Link>
-                    <button
-                      onClick={() => updateTableStatus(table._id, 'disponivel')}
-                      className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
-                    >
-                      Liberar Mesa
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {tables.length === 0 && (
-          <div className="text-center py-12">
-            <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma mesa encontrada</h3>
-            <p className="text-gray-600">Não há mesas cadastradas no sistema.</p>
+              🔄 Atualizar
+            </AnimatedButton>
           </div>
-        )}
+
+          <StaggeredGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" staggerDelay={0.1}>
+            {tables.map((table) => (
+              <StaggeredItem key={table._id}>
+                <AnimatedCard
+                  variant="default"
+                  padding="lg"
+                  hoverable={true}
+                  clickable={table.status === 'disponivel'}
+                  onClick={table.status === 'disponivel' ? () => openTableModal(table) : undefined}
+                  className="h-full"
+                >
+                  {/* Table Status Badge */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                      Mesa {table.number}
+                    </h3>
+                    <motion.span
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${getStatusColor(table.status)}`}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    >
+                      {getStatusIcon(table.status)} {getStatusText(table.status)}
+                    </motion.span>
+                  </div>
+
+                  {/* Table Info */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Capacidade:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">👥 {table.capacity} pessoas</span>
+                    </div>
+
+                    {table.status === 'ocupada' && (
+                      <>
+                        {table.currentCustomers && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Clientes:</span>
+                            <span className="font-medium text-red-600">🧑‍🤝‍🧑 {table.currentCustomers}</span>
+                          </div>
+                        )}
+                        {table.identification && (
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Identificação:</span>
+                            <p className="font-medium text-gray-900 dark:text-white mt-1">📝 {table.identification}</p>
+                          </div>
+                        )}
+                        {table.assignedWaiter && (
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Garçom:</span>
+                            <p className="font-medium text-primary-600">👨‍🍳 {table.assignedWaiter.username}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-6 space-y-2">
+                    {table.status === 'disponivel' && (
+                      <AnimatedButton
+                        variant="success"
+                        size="sm"
+                        fullWidth
+                        onClick={() => openTableModal(table)}
+                      >
+                        ✅ Abrir Mesa
+                      </AnimatedButton>
+                    )}
+
+                    {table.status === 'ocupada' && (
+                      <div className="space-y-3">
+                        {/* Botões principais - primeira linha */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Link href={`/garcom/pedido/${table._id}`} title="Criar novo pedido para esta mesa">
+                            <AnimatedButton variant="primary" size="sm" fullWidth>
+                              ➕ Novo Pedido
+                            </AnimatedButton>
+                          </Link>
+                          <Link href={`/garcom/pedidos?mesa=${table.number}`} title="Ver todos os pedidos desta mesa">
+                            <AnimatedButton variant="secondary" size="sm" fullWidth>
+                              📋 Ver Pedidos
+                            </AnimatedButton>
+                          </Link>
+                        </div>
+                        
+                        {/* Botões de finalização - segunda linha */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Link href={`/garcom/conta/${table._id}`} title="Fechar conta e processar pagamento">
+                            <AnimatedButton variant="warning" size="sm" fullWidth>
+                              💰 Fechar Conta
+                            </AnimatedButton>
+                          </Link>
+                          <AnimatedButton
+                            variant="danger"
+                            size="sm"
+                            fullWidth
+                            onClick={() => updateTableStatus(table._id, 'disponivel')}
+                          >
+                            🔓 Liberar Mesa
+                          </AnimatedButton>
+                        </div>
+                      </div>
+                    )}
+
+                    {table.status === 'reservada' && (
+                      <AnimatedButton
+                        variant="warning"
+                        size="sm"
+                        fullWidth
+                        onClick={() => updateTableStatus(table._id, 'ocupada', 1)}
+                      >
+                        ⏰ Confirmar Reserva
+                      </AnimatedButton>
+                    )}
+                  </div>
+                </AnimatedCard>
+              </StaggeredItem>
+            ))}
+          </StaggeredGrid>
+        </motion.div>
       </main>
 
-      {/* Modal de Abertura de Mesa */}
-      {showOpenModal && selectedTable && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Abrir Mesa {selectedTable.number}
-            </h3>
-            
-            <div className="space-y-4">
+      {/* Open Table Modal */}
+      <AnimatedModal
+        isOpen={showOpenModal}
+        onClose={() => setShowOpenModal(false)}
+        title={`Abrir Mesa ${selectedTable?.number}`}
+        size="md"
+      >
+        <div className="space-y-6">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+              <span className="text-lg">ℹ️</span>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Número de clientes *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max={selectedTable.capacity}
-                  value={openTableForm.customers}
-                  onChange={(e) => setOpenTableForm({...openTableForm, customers: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  placeholder={`Máximo ${selectedTable.capacity} pessoas`}
-                />
+                <h4 className="font-medium">Mesa {selectedTable?.number}</h4>
+                <p className="text-sm">Capacidade máxima: {selectedTable?.capacity} pessoas</p>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Identificação da mesa (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={openTableForm.identification}
-                  onChange={(e) => setOpenTableForm({...openTableForm, identification: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  placeholder="Ex: Família Silva, João, Evento..."
-                  maxLength={100}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Ajuda a identificar a mesa durante o atendimento
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowOpenModal(false);
-                  setOpenTableForm({ customers: '', identification: '' });
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleOpenTable}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Abrir Mesa
-              </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
-        <div className="flex justify-around">
-          <Link href="/garcom/dashboard" className="flex flex-col items-center py-2 px-4 text-gray-400">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            <span className="text-xs">Dashboard</span>
-          </Link>
-          <button className="flex flex-col items-center py-2 px-4 text-green-600">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-            </svg>
-            <span className="text-xs font-medium">Mesas</span>
-          </button>
-          <Link href="/garcom/pedidos" className="flex flex-col items-center py-2 px-4 text-gray-400">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span className="text-xs">Pedidos</span>
-          </Link>
-          <Link href="/garcom/pagamentos" className="flex flex-col items-center py-2 px-4 text-gray-400">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-            </svg>
-            <span className="text-xs">Pagamentos</span>
-          </Link>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Número de Clientes *
+            </label>
+            <input
+              type="number"
+              min="1"
+              max={selectedTable?.capacity}
+              value={openTableForm.customers}
+              onChange={(e) => setOpenTableForm({...openTableForm, customers: e.target.value})}
+              className="
+                w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm
+                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                transition-all duration-200
+              "
+              placeholder="Ex: 2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Identificação (opcional)
+            </label>
+            <input
+              type="text"
+              value={openTableForm.identification}
+              onChange={(e) => setOpenTableForm({...openTableForm, identification: e.target.value})}
+              className="
+                w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm
+                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                transition-all duration-200
+              "
+              placeholder="Ex: João Silva, Mesa VIP..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <AnimatedButton
+              variant="secondary"
+              fullWidth
+              onClick={() => setShowOpenModal(false)}
+            >
+              ❌ Cancelar
+            </AnimatedButton>
+            <AnimatedButton
+              variant="success"
+              fullWidth
+              onClick={handleOpenTable}
+            >
+              ✅ Abrir Mesa
+            </AnimatedButton>
+          </div>
         </div>
-      </nav>
-    </div>
+      </AnimatedModal>
+
+      <GarcomBottomNav />
+    </AnimatedPageContainer>
   );
 } 

@@ -3,6 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import AnimatedCard from '../../../components/ui/AnimatedCard';
+import AnimatedButton from '../../../components/ui/AnimatedButton';
+import GarcomBottomNav from '../../../components/ui/GarcomBottomNav';
+import { AnimatedPageContainer, StaggeredGrid, StaggeredItem } from '../../../components/ui/PageTransition';
+import { 
+  CreditCardIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  CurrencyDollarIcon,
+  MagnifyingGlassIcon,
+  CalendarDaysIcon,
+  FunnelIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 
 interface Table {
   _id: string;
@@ -81,12 +96,14 @@ export default function GarcomPagamentos() {
   const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentWaiterId, setCurrentWaiterId] = useState<string | null>(null);
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     // Verificar autenticação
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('userRole');
     const userId = localStorage.getItem('userId');
+    const storedUserName = localStorage.getItem('userName');
 
     if (!token || userRole !== 'garcom') {
       router.push('/auth/login?role=garcom');
@@ -94,6 +111,7 @@ export default function GarcomPagamentos() {
     }
 
     setCurrentWaiterId(userId);
+    setUserName(storedUserName || 'Garçom');
     loadData();
   }, [router]);
 
@@ -388,384 +406,466 @@ export default function GarcomPagamentos() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando pagamentos...</p>
+      <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="min-h-screen flex items-center justify-center pb-24">
+          <AnimatedCard variant="glass" padding="xl" className="text-center">
+            <motion.div
+              className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.h2
+              className="text-xl font-semibold text-gray-800 dark:text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              Carregando pagamentos...
+            </motion.h2>
+          </AnimatedCard>
         </div>
-      </div>
+        <GarcomBottomNav />
+      </AnimatedPageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <header className="bg-white shadow">
+      <motion.header
+        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 shadow-lg sticky top-0 z-40"
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link 
-                href="/garcom/dashboard"
-                className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3 hover:bg-gray-200"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Meus Pagamentos</h1>
-                <p className="text-sm text-gray-500">
-                  Controle das suas contas e comissões
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={loadData}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500"
+            <motion.div
+              className="flex items-center"
+              initial={{ x: -50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
             >
-              🔄 Atualizar
-            </button>
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white text-lg font-bold">RV</span>
+              </div>
+              <div className="ml-4">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Meus Pagamentos</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">👨‍🍳 {userName}</p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              className="flex items-center gap-3"
+              initial={{ x: 50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <AnimatedButton
+                variant="secondary"
+                size="sm"
+                onClick={loadData}
+                className="font-medium"
+              >
+                🔄 Atualizar
+              </AnimatedButton>
+            </motion.div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{myTotalPendente}</div>
-              <div className="text-sm text-gray-600">Podem Pagar</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{myTotalEnviado}</div>
-              <div className="text-sm text-gray-600">Enviados p/ Admin</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{myTotalPago}</div>
-              <div className="text-sm text-gray-600">Pagos</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <div className="text-lg font-bold text-gray-900">{formatCurrency(myValorTotal)}</div>
-              <div className="text-sm text-gray-600">Total Vendido</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-center">
-              <div className="text-lg font-bold text-purple-600">{formatCurrency(myComissaoTotal)}</div>
-              <div className="text-sm text-gray-600">Comissões</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex">
-              <button
-                onClick={() => setActiveTab('pendentes')}
-                className={`py-4 px-6 text-sm font-medium border-b-2 ${
-                  activeTab === 'pendentes'
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Minhas Mesas ({myTables.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('historico')}
-                className={`py-4 px-6 text-sm font-medium border-b-2 ${
-                  activeTab === 'historico'
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Histórico de Pagamentos ({myTotalPago})
-              </button>
-            </nav>
-          </div>
-
-          {/* Filtros */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Buscar
-                </label>
-                <input
-                  type="text"
-                  placeholder={activeTab === 'pendentes' ? "Mesa ou identificação..." : "Mesa, identificação ou ID..."}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                />
-              </div>
-
-              {activeTab === 'historico' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-              )}
-
-              <div className="flex items-end">
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setDateFilter('');
-                  }}
-                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-gray-500"
+        <motion.div
+          className="mb-8"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <StaggeredGrid className="grid grid-cols-2 lg:grid-cols-5 gap-4" staggerDelay={0.1}>
+            {[
+              { 
+                title: 'Podem Pagar', 
+                value: myTotalPendente, 
+                icon: ClockIcon, 
+                color: 'from-blue-600 to-blue-700',
+                bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+                textColor: 'text-blue-600 dark:text-blue-400'
+              },
+              { 
+                title: 'Enviados p/ Admin', 
+                value: myTotalEnviado, 
+                icon: CreditCardIcon, 
+                color: 'from-amber-600 to-amber-700',
+                bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+                textColor: 'text-amber-600 dark:text-amber-400'
+              },
+              { 
+                title: 'Pagos', 
+                value: myTotalPago, 
+                icon: CheckCircleIcon, 
+                color: 'from-green-600 to-green-700',
+                bgColor: 'bg-green-50 dark:bg-green-900/20',
+                textColor: 'text-green-600 dark:text-green-400'
+              },
+              { 
+                title: 'Total Vendido', 
+                value: formatCurrency(myValorTotal), 
+                icon: CurrencyDollarIcon, 
+                color: 'from-purple-600 to-purple-700',
+                bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+                textColor: 'text-purple-600 dark:text-purple-400',
+                isMonetary: true
+              },
+              { 
+                title: 'Comissões', 
+                value: formatCurrency(myComissaoTotal), 
+                icon: CurrencyDollarIcon, 
+                color: 'from-indigo-600 to-indigo-700',
+                bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+                textColor: 'text-indigo-600 dark:text-indigo-400',
+                isMonetary: true
+              },
+            ].map((stat, index) => (
+              <StaggeredItem key={stat.title}>
+                <AnimatedCard
+                  variant="default"
+                  padding="lg"
+                  className={`${stat.bgColor} border-0 h-full`}
+                  hoverable={true}
                 >
-                  Limpar Filtros
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Conteúdo das abas */}
-          <div className="p-6">
-            {activeTab === 'pendentes' ? (
-              // Aba de Mesas
-              <>
-                {filteredTables.length === 0 ? (
-                  <div className="text-center py-12">
-                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                    </svg>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma mesa encontrada</h3>
-                    <p className="text-gray-600">
-                      {searchTerm 
-                        ? 'Tente ajustar os filtros.' 
-                        : 'Você não tem mesas com pagamentos pendentes no momento.'
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredTables.map((tableData) => (
-                      <div key={tableData.table._id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                          {/* Informações da mesa */}
-                          <div className="flex items-center gap-4 mb-4 lg:mb-0">
-                            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                              <span className="text-green-800 font-bold text-lg">{tableData.table.number}</span>
-                            </div>
-                            
-                            <div>
-                              <div className="text-lg font-semibold text-gray-900">
-                                Mesa {tableData.table.number}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {tableData.table.identification && `${tableData.table.identification} • `}
-                                {tableData.orderCount} pedido{tableData.orderCount !== 1 ? 's' : ''}
-                              </div>
-                            </div>
-
-                            <div className="text-right">
-                              <div className="text-xl font-bold text-green-600">
-                                {formatCurrency(tableData.totalAmount)}
-                              </div>
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(tableData)}`}>
-                                {getStatusLabel(tableData)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Ações */}
-                          <div className="flex gap-2">
-                            {tableData.canPay && !tableData.payment && (
-                              <Link
-                                href={`/garcom/conta/${tableData.table._id}`}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                              >
-                                Fechar Conta
-                              </Link>
-                            )}
-                            {tableData.payment?.status === 'pendente' && (
-                              <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium">
-                                ⏳ Aguardando Admin
-                              </span>
-                            )}
-                            {tableData.payment?.status === 'pago' && (
-                              <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
-                                ✅ Pago
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              // Aba de Histórico
-              <>
-                {filteredPayments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum pagamento encontrado</h3>
-                    <p className="text-gray-600">
-                      {searchTerm || dateFilter 
-                        ? 'Tente ajustar os filtros.' 
-                        : 'Você ainda não tem pagamentos no histórico.'
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredPayments.map((payment) => {
-                      if (!payment.tableId || typeof payment.tableId !== 'object') {
-                        return null;
-                      }
-                      
-                      return (
-                        <div
-                          key={payment._id}
-                          className="bg-gray-50 rounded-lg border border-gray-200 p-6"
-                        >
-                          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                            {/* Informações principais */}
-                            <div className="flex items-center gap-6 mb-4 lg:mb-0">
-                              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                <span className="text-green-800 font-bold text-lg">{payment.tableId.number}</span>
-                              </div>
-                              
-                              <div>
-                                <div className="text-lg font-semibold text-gray-900">
-                                  Mesa {payment.tableId.number}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {payment.tableIdentification && `${payment.tableIdentification} • `}
-                                  ID: {payment._id.slice(-6)}
-                                </div>
-                              </div>
-
-                              <div className="text-right">
-                                <div className="text-xl font-bold text-green-600">
-                                  {formatCurrency(payment.totalAmount)}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {payment.orderIds.length} pedido{payment.orderIds.length !== 1 ? 's' : ''}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Data e comissão */}
-                            <div className="text-right">
-                              <div className="text-sm font-medium text-gray-900">
-                                {formatDate(payment.paidAt)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {formatTime(payment.paidAt)}
-                              </div>
-                              {payment.waiterCommissionEnabled && payment.waiterCommissionAmount > 0 && (
-                                <div className="text-sm font-bold text-purple-600 mt-1">
-                                  💰 {formatCurrency(payment.waiterCommissionAmount)}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Métodos de pagamento */}
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <div className="text-sm font-medium text-gray-900 mb-2">
-                              Métodos de Pagamento:
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {payment.paymentMethods.map((method, index) => (
-                                <span
-                                  key={index}
-                                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                >
-                                  {getMethodLabel(method.type)}: {formatCurrency(method.amount)}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Resumo do histórico */}
-                {filteredPayments.length > 0 && (
-                  <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-                      <div>
-                        <div className="text-green-800 font-medium">Total de Pagamentos</div>
-                        <div className="text-xl font-bold text-green-900">{filteredPayments.length}</div>
-                      </div>
-                      <div>
-                        <div className="text-green-800 font-medium">Valor Total</div>
-                        <div className="text-xl font-bold text-green-900">
-                          {formatCurrency(filteredPayments.reduce((sum, payment) => sum + payment.totalAmount, 0))}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-green-800 font-medium">Comissões</div>
-                        <div className="text-xl font-bold text-green-900">
-                          {formatCurrency(filteredPayments.reduce((sum, payment) => sum + (payment.waiterCommissionAmount || 0), 0))}
-                        </div>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`text-sm font-medium ${stat.textColor} opacity-80`}>
+                        {stat.title}
+                      </p>
+                      <p className={`text-xl font-bold ${stat.textColor} ${stat.isMonetary ? 'text-lg' : ''}`}>
+                        {stat.value}
+                      </p>
+                    </div>
+                    <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                      <stat.icon className="w-6 h-6 text-white" />
                     </div>
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+                </AnimatedCard>
+              </StaggeredItem>
+            ))}
+          </StaggeredGrid>
+        </motion.div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
-        <div className="flex justify-around">
-          <Link href="/garcom/dashboard" className="flex flex-col items-center py-2 px-4 text-gray-400">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            <span className="text-xs">Dashboard</span>
-          </Link>
-          <Link href="/garcom/mesas" className="flex flex-col items-center py-2 px-4 text-gray-400">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-            </svg>
-            <span className="text-xs">Mesas</span>
-          </Link>
-          <Link href="/garcom/pedidos" className="flex flex-col items-center py-2 px-4 text-gray-400">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span className="text-xs">Pedidos</span>
-          </Link>
-          <button className="flex flex-col items-center py-2 px-4 text-green-600">
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-            </svg>
-            <span className="text-xs font-medium">Pagamentos</span>
-          </button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Tabs */}
+          <motion.div
+            className="mb-8"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            <AnimatedCard variant="default" padding="none" className="overflow-hidden">
+              <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="-mb-px flex">
+                  <motion.button
+                    onClick={() => setActiveTab('pendentes')}
+                    className={`py-4 px-6 text-sm font-medium border-b-2 flex-1 transition-all duration-300 ${
+                      activeTab === 'pendentes'
+                        ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <ClockIcon className="w-4 h-4" />
+                      Minhas Mesas ({myTables.length})
+                    </span>
+                  </motion.button>
+                  <motion.button
+                    onClick={() => setActiveTab('historico')}
+                    className={`py-4 px-6 text-sm font-medium border-b-2 flex-1 transition-all duration-300 ${
+                      activeTab === 'historico'
+                        ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <CheckCircleIcon className="w-4 h-4" />
+                      Histórico ({myTotalPago})
+                    </span>
+                  </motion.button>
+                </nav>
+              </div>
+
+              {/* Filtros */}
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <MagnifyingGlassIcon className="w-4 h-4 inline mr-1" />
+                      Buscar
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={activeTab === 'pendentes' ? "Mesa ou identificação..." : "Mesa, identificação ou ID..."}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="
+                        w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                        rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm
+                        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                        transition-all duration-200
+                      "
+                    />
+                  </div>
+
+                  {activeTab === 'historico' && (
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <CalendarDaysIcon className="w-4 h-4 inline mr-1" />
+                        Data
+                      </label>
+                      <input
+                        type="date"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        className="
+                          w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                          rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm
+                          focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                          transition-all duration-200
+                        "
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-end">
+                    <AnimatedButton
+                      variant="secondary"
+                      size="lg"
+                      fullWidth
+                      onClick={() => {
+                        setSearchTerm('');
+                        setDateFilter('');
+                      }}
+                      className="h-12"
+                    >
+                      <XMarkIcon className="w-4 h-4 mr-2" />
+                      Limpar Filtros
+                    </AnimatedButton>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conteúdo das abas */}
+              <motion.div
+                className="p-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+              >
+                {activeTab === 'pendentes' ? (
+                  // Aba de Mesas
+                  <>
+                    {filteredTables.length === 0 ? (
+                      <AnimatedCard variant="default" padding="xl" className="text-center">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          <CreditCardIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhuma mesa encontrada</h3>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {searchTerm 
+                              ? 'Tente ajustar os filtros.' 
+                              : 'Você não tem mesas com pagamentos pendentes no momento.'
+                            }
+                          </p>
+                        </div>
+                      </AnimatedCard>
+                    ) : (
+                      <StaggeredGrid className="space-y-4" staggerDelay={0.1}>
+                        {filteredTables.map((tableData, index) => (
+                          <StaggeredItem key={tableData.table._id}>
+                            <AnimatedCard variant="default" padding="lg" hoverable={true}>
+                              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                                {/* Informações da mesa */}
+                                <div className="flex items-center gap-4 mb-4 lg:mb-0">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-primary-700 to-primary-900 rounded-xl flex items-center justify-center shadow-lg">
+                                    <span className="text-gray-900 font-bold text-lg">{tableData.table.number}</span>
+                                  </div>
+                                  
+                                  <div>
+                                    <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                                      Mesa {tableData.table.number}
+                                    </div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                      {tableData.table.identification && `${tableData.table.identification} • `}
+                                      {tableData.orderCount} pedido{tableData.orderCount !== 1 ? 's' : ''}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right">
+                                    <div className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                                      {formatCurrency(tableData.totalAmount)}
+                                    </div>
+                                    <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(tableData)}`}>
+                                      {getStatusLabel(tableData)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Ações */}
+                                <div className="flex gap-2">
+                                  {tableData.canPay && !tableData.payment && (
+                                    <Link href={`/garcom/conta/${tableData.table._id}`}>
+                                      <AnimatedButton variant="primary" size="sm">
+                                        💰 Fechar Conta
+                                      </AnimatedButton>
+                                    </Link>
+                                  )}
+                                  {tableData.payment?.status === 'pendente' && (
+                                    <AnimatedButton variant="warning" size="sm" disabled>
+                                      ⏳ Aguardando Admin
+                                    </AnimatedButton>
+                                  )}
+                                  {tableData.payment?.status === 'pago' && (
+                                    <AnimatedButton variant="success" size="sm" disabled>
+                                      ✅ Pago
+                                    </AnimatedButton>
+                                  )}
+                                </div>
+                              </div>
+                            </AnimatedCard>
+                          </StaggeredItem>
+                        ))}
+                      </StaggeredGrid>
+                    )}
+                  </>
+                ) : (
+                  // Aba de Histórico
+                  <>
+                    {filteredPayments.length === 0 ? (
+                      <AnimatedCard variant="default" padding="xl" className="text-center">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          <CheckCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhum pagamento encontrado</h3>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {searchTerm || dateFilter 
+                              ? 'Tente ajustar os filtros.' 
+                              : 'Você ainda não tem pagamentos no histórico.'
+                            }
+                          </p>
+                        </div>
+                      </AnimatedCard>
+                    ) : (
+                      <>
+                        <StaggeredGrid className="space-y-4 mb-6" staggerDelay={0.1}>
+                          {filteredPayments.map((payment, index) => {
+                            if (!payment.tableId || typeof payment.tableId !== 'object') {
+                              return null;
+                            }
+                            
+                            return (
+                              <StaggeredItem key={payment._id}>
+                                <AnimatedCard variant="default" padding="lg" hoverable={true}>
+                                  <div className="space-y-4">
+                                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                                      {/* Informações principais */}
+                                      <div className="flex items-center gap-6 mb-4 lg:mb-0">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-primary-700 to-primary-900 rounded-xl flex items-center justify-center shadow-lg">
+                                          <span className="text-gray-900 font-bold text-lg">{payment.tableId.number}</span>
+                                        </div>
+                                        
+                                        <div>
+                                          <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                                            Mesa {payment.tableId.number}
+                                          </div>
+                                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                                            {payment.tableIdentification && `${payment.tableIdentification} • `}
+                                            ID: {payment._id.slice(-6)}
+                                          </div>
+                                        </div>
+
+                                        <div className="text-right">
+                                          <div className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                                            {formatCurrency(payment.totalAmount)}
+                                          </div>
+                                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                                            {payment.orderIds.length} pedido{payment.orderIds.length !== 1 ? 's' : ''}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Data e comissão */}
+                                      <div className="text-right">
+                                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                          {formatDate(payment.paidAt)}
+                                        </div>
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                                          {formatTime(payment.paidAt)}
+                                        </div>
+                                        {payment.waiterCommissionEnabled && payment.waiterCommissionAmount > 0 && (
+                                          <div className="text-sm font-bold text-purple-600 dark:text-purple-400 mt-1">
+                                            💰 {formatCurrency(payment.waiterCommissionAmount)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Métodos de pagamento */}
+                                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                                      <div className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                                        Métodos de Pagamento:
+                                      </div>
+                                      <div className="flex flex-wrap gap-2">
+                                        {payment.paymentMethods.map((method, methodIndex) => (
+                                          <span
+                                            key={methodIndex}
+                                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                          >
+                                            {getMethodLabel(method.type)}: {formatCurrency(method.amount)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </AnimatedCard>
+                              </StaggeredItem>
+                            );
+                          })}
+                        </StaggeredGrid>
+
+                        {/* Resumo do histórico */}
+                        <AnimatedCard variant="gradient" padding="lg" className="bg-gradient-to-r from-primary-50 to-green-50 dark:from-primary-900/30 dark:to-green-900/30 border border-primary-200 dark:border-primary-800">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div>
+                              <div className="text-primary-800 dark:text-primary-200 font-medium">Total de Pagamentos</div>
+                              <div className="text-xl font-bold text-primary-900 dark:text-primary-100">{filteredPayments.length}</div>
+                            </div>
+                            <div>
+                              <div className="text-primary-800 dark:text-primary-200 font-medium">Valor Total</div>
+                              <div className="text-xl font-bold text-primary-900 dark:text-primary-100">
+                                {formatCurrency(filteredPayments.reduce((sum, payment) => sum + payment.totalAmount, 0))}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-primary-800 dark:text-primary-200 font-medium">Comissões</div>
+                              <div className="text-xl font-bold text-primary-900 dark:text-primary-100">
+                                {formatCurrency(filteredPayments.reduce((sum, payment) => sum + (payment.waiterCommissionAmount || 0), 0))}
+                              </div>
+                            </div>
+                          </div>
+                        </AnimatedCard>
+                      </>
+                    )}
+                  </>
+                )}
+              </motion.div>
+            </AnimatedCard>
+          </motion.div>
         </div>
-      </nav>
-    </div>
+      </main>
+
+      <GarcomBottomNav />
+    </AnimatedPageContainer>
   );
 } 
