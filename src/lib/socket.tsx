@@ -183,21 +183,16 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const connect = (userData: any) => {
-    console.log('🔗 Tentando conectar socket com dados:', userData);
-    
     // Evitar múltiplas conexões
     if (socketRef.current?.connected) {
-      console.log('⚠️ Socket já conectado, ignorando nova conexão');
       return;
     }
     
     if (connectingRef.current) {
-      console.log('⚠️ Já conectando, ignorando nova tentativa');
       return;
     }
 
     connectingRef.current = true;
-    console.log('🚀 Iniciando nova conexão Socket.IO...');
     
     const newSocket = io({
       timeout: 5000,
@@ -208,27 +203,22 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     newSocket.on('connect', () => {
-      console.log('✅ Socket conectado com sucesso!');
       setIsConnected(true);
       connectingRef.current = false;
       
       // Autenticar usuário
-      console.log('🔐 Autenticando usuário:', userData);
       newSocket.emit('authenticate', userData);
     });
 
     newSocket.on('authenticated', () => {
-      console.log('🎉 Usuário autenticado com sucesso!');
       requestNotificationPermission();
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('❌ Socket desconectado:', reason);
       setIsConnected(false);
     });
 
     newSocket.on('reconnect', () => {
-      console.log('🔄 Socket reconectado!');
       setIsConnected(true);
       // Reautenticar após reconexão
       newSocket.emit('authenticate', userData);
@@ -271,7 +261,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       if (data.status === 'pronto') {
         // Se for garçom e o pedido ficou pronto, tocar som chamativo
         if (userDataRef.current?.role === 'garcom') {
-          console.log('🔔🎵 Tocando som chamativo para garçom - Pedido PRONTO!');
           playNotificationSound('order_ready_waiter', userDataRef.current.role);
           
           // Adicionar vibração se disponível (mobile)
@@ -288,11 +277,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       showBrowserNotification(notification);
     });
 
-    // Novo listener específico para notificações de garçom
+    // Listener específico para notificações de garçom
     newSocket.on('waiter_order_ready', (data) => {
-      console.log('🎯 EVENTO waiter_order_ready RECEBIDO NO CLIENTE!', data);
-      console.log('👤 Dados do usuário conectado:', userDataRef.current);
-      
       const notification: Notification = {
         id: `waiter_ready_${data.order._id}_${Date.now()}`,
         type: 'waiter_order_ready',
@@ -303,15 +289,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         data: data.order
       };
       
-      console.log('📝 Criando notificação:', notification);
-      setNotifications(prev => {
-        const newNotifications = [notification, ...prev.slice(0, 49)];
-        console.log('📋 Notificações atualizadas. Total:', newNotifications.length);
-        return newNotifications;
-      });
+      setNotifications(prev => [notification, ...prev.slice(0, 49)]);
       
       // Som muito chamativo apenas para garçons
-      console.log('🔔🎵 TOCANDO SOM CHAMATIVO PARA GARÇOM!');
       playNotificationSound('order_ready_waiter', 'garcom');
       
       // Vibração intensa para chamar atenção
@@ -328,41 +308,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         setTimeout(() => {
           document.body.style.backgroundColor = '';
         }, 500);
-      }
-    });
-
-    // LISTENER DE TESTE - REMOVER DEPOIS
-    newSocket.on('test_waiter_notification', (data) => {
-      console.log('🧪 EVENTO DE TESTE RECEBIDO!', data);
-      
-      // Criar notificação de teste igual às reais
-      const notification: Notification = {
-        id: `test_waiter_${Date.now()}`,
-        type: 'waiter_order_ready',
-        title: `🧪 TESTE - Mesa ${data.order.tableId.number}!`,
-        message: `Teste de notificação visual! ${data.order.items.length} item(s)`,
-        timestamp: new Date(),
-        read: false,
-        data: data.order
-      };
-      
-      setNotifications(prev => [notification, ...prev.slice(0, 49)]);
-      
-      console.log('🔔 Testando som e vibração...');
-      playNotificationSound('order_ready_waiter', 'garcom');
-      
-      if (navigator.vibrate) {
-        navigator.vibrate([300, 200, 300]);
-      }
-      
-      showBrowserNotification(notification);
-      
-      // Flash de teste
-      if (document.body) {
-        document.body.style.backgroundColor = '#dcfce7'; // Verde claro para indicar teste
-        setTimeout(() => {
-          document.body.style.backgroundColor = '';
-        }, 1000);
       }
     });
 

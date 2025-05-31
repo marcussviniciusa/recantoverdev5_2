@@ -46,32 +46,14 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
-      console.log('🔍 Resposta da API de login:', data);
 
       if (data.success) {
-        console.log('📋 Dados do usuário da API:', data.data.user);
-        console.log('🆔 ID do usuário (_id):', data.data.user._id);
-        console.log('🆔 ID do usuário (id):', data.data.user.id);
-        console.log('🔑 Tipo do ID:', typeof data.data.user.id);
-        
         // Salvar token e dados do usuário
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('userId', data.data.user.id);
         localStorage.setItem('userRole', data.data.user.role);
         localStorage.setItem('userName', data.data.user.username);
         localStorage.setItem('userEmail', data.data.user.email);
-
-        // Verificar se foi salvo corretamente
-        console.log('✅ Verificando localStorage após salvamento:');
-        console.log('- userId salvo:', localStorage.getItem('userId'));
-        console.log('- userRole salvo:', localStorage.getItem('userRole'));
-        console.log('- userName salvo:', localStorage.getItem('userName'));
-
-        console.log('✅ Login realizado! Dados salvos:', {
-          userId: data.data.user.id,
-          role: data.data.user.role,
-          username: data.data.user.username
-        });
 
         // Redirecionar baseado no role
         if (data.data.user.role === 'recepcionista') {
