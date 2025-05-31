@@ -26,7 +26,8 @@ export async function PATCH(
       );
     }
 
-    const { id } = params;
+    // 🔧 CORREÇÃO Next.js 15: Await params antes de usar
+    const { id } = await params;
     const body = await request.json();
     const { status } = body;
 
@@ -151,6 +152,20 @@ export async function PATCH(
           });
         });
         console.log(`✅ Evento Socket.IO emitido para targets: ${notification.target.join(', ')}`);
+        
+        // 🎵 NOTIFICAÇÃO SONORA ESPECÍFICA PARA GARÇONS quando pedido fica PRONTO
+        if (status === 'pronto') {
+          console.log('🔔🎵 Emitindo notificação sonora específica para garçom...');
+          (global as any).io.to(`waiter_${updatedOrder.waiterId._id}`).emit('waiter_order_ready', {
+            type: 'waiter_order_ready',
+            title: `🍽️ SEU PEDIDO ESTÁ PRONTO!`,
+            message: `Mesa ${updatedOrder.tableId.number} - ${updatedOrder.items.length} item(s) prontos para entrega`,
+            order: updatedOrder,
+            urgency: 'high', // Indicador de urgência
+            timestamp: new Date()
+          });
+          console.log(`🎯 Notificação sonora enviada especificamente para garçom ${updatedOrder.waiterId._id}`);
+        }
       }
 
       // Emitir também um evento geral para admins

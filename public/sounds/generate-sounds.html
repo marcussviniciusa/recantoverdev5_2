@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gerador de Sons - Recanto Verde</title>
+</head>
+<body>
+    <h1>Gerador de Sons para Notificações</h1>
+    <p>Clique nos botões para testar e baixar os sons:</p>
+    
+    <button onclick="generateAndPlaySound('notification')">🔔 Som Padrão</button>
+    <button onclick="generateAndPlaySound('new-order')">📝 Novo Pedido</button>
+    <button onclick="generateAndPlaySound('order-ready')">🍽️ Pedido Pronto</button>
+    <button onclick="generateAndPlaySound('order-ready-waiter')">🚨 Pedido Pronto (Garçom)</button>
+    <button onclick="generateAndPlaySound('payment')">💰 Pagamento</button>
+
+    <script>
+        function generateTone(audioContext, frequency, duration, volume = 0.3, type = 'sine') {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function generateAndPlaySound(soundType) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            switch(soundType) {
+                case 'notification':
+                    // Som discreto padrão
+                    generateTone(audioContext, 500, 0.2, 0.3);
+                    break;
+                    
+                case 'new-order':
+                    // Som discreto para novos pedidos
+                    generateTone(audioContext, 400, 0.3, 0.3);
+                    break;
+                    
+                case 'order-ready':
+                    // Som médio para recepcionistas
+                    generateTone(audioContext, 600, 0.4, 0.4);
+                    setTimeout(() => generateTone(audioContext, 800, 0.2, 0.4), 400);
+                    break;
+                    
+                case 'order-ready-waiter':
+                    // Som chamativo para garçons
+                    generateTone(audioContext, 800, 0.2, 0.8);
+                    setTimeout(() => generateTone(audioContext, 1000, 0.2, 0.8), 200);
+                    setTimeout(() => generateTone(audioContext, 800, 0.2, 0.8), 400);
+                    setTimeout(() => generateTone(audioContext, 1000, 0.3, 0.8), 600);
+                    break;
+                    
+                case 'payment':
+                    // Som para pagamentos
+                    generateTone(audioContext, 700, 0.3, 0.5);
+                    setTimeout(() => generateTone(audioContext, 900, 0.2, 0.5), 300);
+                    break;
+            }
+            
+            console.log(`Som ${soundType} reproduzido!`);
+        }
+
+        // Função para criar arquivo WAV (simplificada)
+        function createWavFile(soundType) {
+            // Esta é uma implementação básica
+            // Para produção, use bibliotecas como Recorder.js ou similar
+            alert(`Para criar arquivo ${soundType}.mp3, você precisaria de uma biblioteca específica ou usar o Web Audio API com MediaRecorder.`);
+        }
+    </script>
+
+    <hr>
+    <h2>Instruções:</h2>
+    <ol>
+        <li>Este arquivo usa Web Audio API para gerar tons sintetizados</li>
+        <li>Os sons são reproduzidos diretamente no navegador</li>
+        <li>Para produção, você pode substituir por arquivos de áudio reais</li>
+        <li>O sistema fallback já está implementado no código React</li>
+    </ol>
+
+    <h3>Características dos Sons:</h3>
+    <ul>
+        <li><strong>notification.mp3</strong>: Tom discreto de 500Hz por 0.2s</li>
+        <li><strong>new-order.mp3</strong>: Tom discreto de 400Hz por 0.3s</li>
+        <li><strong>order-ready.mp3</strong>: Sequência 600Hz + 800Hz</li>
+        <li><strong>order-ready-waiter.mp3</strong>: Sequência chamativa 800-1000Hz (volume alto)</li>
+        <li><strong>payment.mp3</strong>: Tom 700Hz + 900Hz</li>
+    </ul>
+</body>
+</html> 

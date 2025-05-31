@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSocket } from '../../../lib/socket';
 
 interface Table {
   _id: string;
@@ -20,6 +21,7 @@ interface Table {
 
 export default function GarcomMesas() {
   const router = useRouter();
+  const { connect, disconnect, socket } = useSocket();
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
@@ -35,6 +37,14 @@ export default function GarcomMesas() {
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('userRole');
     const storedUserName = localStorage.getItem('userName');
+    const userId = localStorage.getItem('userId');
+
+    console.log('🔍 Verificando dados de autenticação:', {
+      token: !!token,
+      userRole,
+      storedUserName,
+      userId
+    });
 
     if (!token || userRole !== 'garcom') {
       router.push('/auth/login?role=garcom');
@@ -44,6 +54,39 @@ export default function GarcomMesas() {
     setUserName(storedUserName || '');
     loadTables();
   }, [router]);
+
+  // Conectar Socket.IO separadamente para evitar loop
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('userRole');
+    const userId = localStorage.getItem('userId');
+    const storedUserName = localStorage.getItem('userName');
+
+    console.log('🔍 Dados para socket:', { token: !!token, userRole, userId, storedUserName });
+
+    if (token && userRole === 'garcom' && userId) {
+      console.log('🔌 Conectando garçom ao Socket.IO...');
+      console.log('📋 Dados do usuário:', { userId, userRole, storedUserName });
+      
+      connect({
+        id: userId,
+        role: userRole,
+        username: storedUserName
+      });
+
+      return () => {
+        console.log('🔌 Desconectando socket...');
+        disconnect();
+      };
+    } else {
+      console.log('❌ Não foi possível conectar socket - dados faltando:', { 
+        token: !!token, 
+        userRole, 
+        userId,
+        message: !userId ? 'userId está null/undefined' : 'outros dados faltando'
+      });
+    }
+  }, []); // Sem dependências para evitar loops
 
   const loadTables = async () => {
     try {
@@ -63,6 +106,45 @@ export default function GarcomMesas() {
       console.error('Erro ao carregar mesas:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // FUNÇÃO DE TESTE - REMOVER DEPOIS
+  const testarNotificacao = () => {
+    console.log('🧪 Testando notificação visual...');
+    
+    // Primeiro tentar adicionar alerta diretamente
+    if (typeof window !== 'undefined' && (window as any).addTestAlert) {
+      console.log('📱 Adicionando alerta de teste diretamente...');
+      (window as any).addTestAlert();
+      return;
+    }
+    
+    // Tentar via socket se disponível
+    if (socket) {
+      console.log('📡 Socket disponível, simulando evento...');
+      
+      const testData = {
+        order: {
+          _id: 'test_order_123',
+          tableId: { number: 99 },
+          items: [{ productName: 'Teste', quantity: 1 }]
+        }
+      };
+      
+      // Simular o evento que vem do servidor
+      socket.emit('test_waiter_notification', testData);
+    } else {
+      console.log('❌ Socket não conectado e função direta não disponível');
+      
+      // Teste visual básico
+      console.log('🎨 Fazendo teste visual básico...');
+      document.body.style.backgroundColor = '#dcfce7';
+      setTimeout(() => {
+        document.body.style.backgroundColor = '';
+      }, 2000);
+      
+      alert('⚠️ Socket não conectado! Verifique os logs do servidor.');
     }
   };
 
@@ -190,6 +272,20 @@ export default function GarcomMesas() {
           <p className="mt-1 text-gray-600">
             Gerencie suas mesas e atendimentos
           </p>
+          
+          {/* BOTÃO DE TESTE - REMOVER DEPOIS */}
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-lg font-medium text-blue-900 mb-2">🧪 Teste de Notificação</h3>
+            <button
+              onClick={testarNotificacao}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Testar Notificação Visual
+            </button>
+            <p className="mt-2 text-sm text-blue-700">
+              Clique para simular uma notificação de pedido pronto
+            </p>
+          </div>
         </div>
 
         {/* Stats */}
