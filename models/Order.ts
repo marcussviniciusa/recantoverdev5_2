@@ -18,10 +18,17 @@ export interface IOrder extends Document {
   observations?: string;
   estimatedTime?: number; // em minutos
   isMarkedByReceptionist?: boolean;
+  
+  // Campos de cancelamento
+  cancelledBy?: mongoose.Types.ObjectId;
+  cancelledAt?: Date;
+  cancellationReason?: string;
+  
   createdAt: Date;
   updatedAt: Date;
   calculateTotal(): number;
   updateStatus(newStatus: IOrder['status']): Promise<IOrder>;
+  cancelOrder(cancelledBy: string, reason: string): Promise<IOrder>;
   addItem(productId: string, productName: string, quantity: number, unitPrice: number, observations?: string): void;
   removeItem(productId: string): void;
 }
@@ -104,6 +111,16 @@ const OrderSchema = new Schema<IOrder>({
   isMarkedByReceptionist: {
     type: Boolean,
     default: false
+  },
+  cancelledBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  cancelledAt: {
+    type: Date
+  },
+  cancellationReason: {
+    type: String
   }
 }, {
   timestamps: true,
@@ -200,5 +217,15 @@ OrderSchema.virtual('totalAmountFormatted').get(function() {
     currency: 'BRL'
   }).format(this.totalAmount);
 });
+
+// Método para cancelar pedido
+OrderSchema.methods.cancelOrder = async function(cancelledBy: string, reason: string): Promise<IOrder> {
+  this.status = 'cancelado';
+  this.cancelledBy = new mongoose.Types.ObjectId(cancelledBy);
+  this.cancelledAt = new Date();
+  this.cancellationReason = reason;
+  
+  return this.save();
+};
 
 export default mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema); 

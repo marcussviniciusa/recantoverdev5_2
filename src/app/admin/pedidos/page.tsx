@@ -22,31 +22,41 @@ interface Order {
     username: string;
   };
   items: OrderItem[];
-  status: 'pendente' | 'preparando' | 'pronto' | 'entregue';
+  status: 'pendente' | 'preparando' | 'pronto' | 'entregue' | 'cancelado';
   totalAmount: number;
   observations?: string;
   createdAt: string;
+  
+  // Campos de cancelamento
+  cancelledBy?: {
+    username: string;
+  };
+  cancelledAt?: string;
+  cancellationReason?: string;
 }
 
 const statusColors = {
   pendente: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   preparando: 'bg-blue-100 text-blue-800 border-blue-200',
   pronto: 'bg-green-100 text-green-800 border-green-200',
-  entregue: 'bg-gray-100 text-gray-800 border-gray-200'
+  entregue: 'bg-gray-100 text-gray-800 border-gray-200',
+  cancelado: 'bg-red-100 text-red-800 border-red-200'
 };
 
 const statusLabels = {
   pendente: 'Pendente',
   preparando: 'Preparando',
   pronto: 'Pronto',
-  entregue: 'Entregue'
+  entregue: 'Entregue',
+  cancelado: 'Cancelado'
 };
 
 const nextStatus = {
   pendente: 'preparando',
   preparando: 'pronto',
   pronto: 'entregue',
-  entregue: null
+  entregue: null,
+  cancelado: null
 };
 
 export default function PedidosPage() {
@@ -56,6 +66,13 @@ export default function PedidosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Estados para cancelamento
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  
   const { emitEvent, socket } = useSocket();
 
   // Buscar pedidos
@@ -121,6 +138,61 @@ export default function PedidosPage() {
       console.error('Erro ao atualizar pedido:', error);
       alert('Erro ao atualizar status do pedido');
     }
+  };
+
+  // Função para cancelar pedido
+  const cancelOrder = async () => {
+    if (!orderToCancel || !cancellationReason.trim() || cancellationReason.trim().length < 10) {
+      alert('Motivo do cancelamento é obrigatório e deve ter pelo menos 10 caracteres.');
+      return;
+    }
+
+    setCancelling(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/orders/${orderToCancel._id}/cancel`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: cancellationReason.trim() })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Pedido cancelado com sucesso!');
+        closeCancelModal();
+        fetchOrders(); // Recarregar pedidos
+      } else {
+        alert('Erro ao cancelar pedido: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar pedido:', error);
+      alert('Erro de conexão');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // Funções para o modal de cancelamento
+  const openCancelModal = (order: Order) => {
+    setOrderToCancel(order);
+    setCancellationReason('');
+    setShowCancelModal(true);
+  };
+
+  const closeCancelModal = () => {
+    setOrderToCancel(null);
+    setCancellationReason('');
+    setShowCancelModal(false);
+  };
+
+  // Verificar se pode cancelar pedido
+  const canCancelOrder = (order: Order) => {
+    return order.status !== 'entregue' && order.status !== 'cancelado';
   };
 
   // Filtrar e ordenar pedidos
@@ -249,7 +321,7 @@ export default function PedidosPage() {
       </div>
 
       {/* Estatísticas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="text-yellow-800 text-sm font-medium">Pendentes</div>
           <div className="text-2xl font-bold text-yellow-900">
@@ -272,6 +344,12 @@ export default function PedidosPage() {
           <div className="text-gray-800 text-sm font-medium">Entregues</div>
           <div className="text-2xl font-bold text-gray-900">
             {orders.filter(o => o.status === 'entregue').length}
+          </div>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="text-red-800 text-sm font-medium">Cancelados</div>
+          <div className="text-2xl font-bold text-red-900">
+            {orders.filter(o => o.status === 'cancelado').length}
           </div>
         </div>
       </div>
@@ -302,6 +380,7 @@ export default function PedidosPage() {
               <option value="preparando">Preparando</option>
               <option value="pronto">Pronto</option>
               <option value="entregue">Entregue</option>
+              <option value="cancelado">Cancelado</option>
             </select>
 
             <select
@@ -373,15 +452,25 @@ export default function PedidosPage() {
                     </div>
                   </div>
                   
-                  {/* Botão de ação */}
-                  {nextStatus[order.status] && (
-                    <button
-                      onClick={() => updateOrderStatus(order._id, nextStatus[order.status] as string)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors"
-                    >
-                      → {statusLabels[nextStatus[order.status] as keyof typeof statusLabels]}
-                    </button>
-                  )}
+                  {/* Botões de ação */}
+                  <div className="flex gap-2">
+                    {canCancelOrder(order) && (
+                      <button
+                        onClick={() => openCancelModal(order)}
+                        className="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 transition-colors"
+                      >
+                        🚫 Cancelar
+                      </button>
+                    )}
+                    {nextStatus[order.status] && (
+                      <button
+                        onClick={() => updateOrderStatus(order._id, nextStatus[order.status] as string)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors"
+                      >
+                        → {statusLabels[nextStatus[order.status] as keyof typeof statusLabels]}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -431,6 +520,31 @@ export default function PedidosPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Informações de cancelamento */}
+              {order.status === 'cancelado' && order.cancellationReason && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                        <span className="text-red-600 text-sm">🚫</span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-red-800 mb-1">Pedido Cancelado</h4>
+                      <p className="text-sm text-red-700 mb-2">
+                        <strong>Motivo:</strong> {order.cancellationReason}
+                      </p>
+                      {order.cancelledBy && (
+                        <p className="text-xs text-red-600">
+                          Cancelado por: {order.cancelledBy.username}
+                          {order.cancelledAt && ` em ${new Date(order.cancelledAt).toLocaleString('pt-BR')}`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -445,6 +559,139 @@ export default function PedidosPage() {
             </div>
             <div className="text-lg font-bold text-gray-900">
               Total: R$ {filteredOrders.reduce((sum, order) => sum + order.totalAmount, 0).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cancelamento */}
+      {showCancelModal && orderToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            {/* Header do Modal */}
+            <div className="bg-red-600 text-white p-6 rounded-t-xl flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold">Cancelar Pedido</h2>
+                <p className="text-red-100 mt-1">
+                  Mesa {orderToCancel.tableId.number} • R$ {orderToCancel.totalAmount.toFixed(2)}
+                </p>
+              </div>
+              <button
+                onClick={closeCancelModal}
+                className="text-white hover:text-gray-200 text-2xl font-bold w-8 h-8 flex items-center justify-center"
+                disabled={cancelling}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-700 mb-4">
+                  Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.
+                </p>
+                
+                {/* Lista de itens do pedido */}
+                <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Itens do pedido:</h4>
+                  <div className="space-y-1">
+                    {orderToCancel.items.map((item, index) => (
+                      <div key={index} className="text-sm text-gray-600">
+                        {item.quantity}x {item.productName} - R$ {item.totalPrice.toFixed(2)}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-gray-200 mt-2 pt-2">
+                    <div className="text-sm font-medium text-gray-900">
+                      Garçom: {orderToCancel.waiterId.username}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Motivos pré-definidos */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Motivos frequentes:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {[
+                      'Cliente desistiu',
+                      'Produto em falta',
+                      'Erro no pedido',
+                      'Demora excessiva',
+                      'Problema na cozinha',
+                      'Solicitação do garçom'
+                    ].map((reason) => (
+                      <button
+                        key={reason}
+                        onClick={() => setCancellationReason(reason)}
+                        className="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg text-left transition-colors"
+                        disabled={cancelling}
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Campo de motivo personalizado */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Motivo do cancelamento *
+                  </label>
+                  <textarea
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    placeholder="Descreva o motivo do cancelamento (mínimo 10 caracteres)..."
+                    className="
+                      w-full px-4 py-3 border border-gray-300 rounded-lg 
+                      focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500
+                      resize-none
+                    "
+                    rows={3}
+                    disabled={cancelling}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {cancellationReason.length}/10 caracteres mínimos
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="flex gap-3">
+                <button
+                  onClick={closeCancelModal}
+                  disabled={cancelling}
+                  className="
+                    flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg 
+                    hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors duration-200
+                  "
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={cancelOrder}
+                  disabled={cancelling || cancellationReason.trim().length < 10}
+                  className="
+                    flex-1 px-4 py-3 bg-red-600 text-white rounded-lg 
+                    hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors duration-200 font-medium
+                  "
+                >
+                  {cancelling ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Cancelando...
+                    </span>
+                  ) : (
+                    '🚫 Confirmar Cancelamento'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -38,6 +38,13 @@ interface Order {
   estimatedTime?: number;
   createdAt: string;
   updatedAt: string;
+  
+  // Campos de cancelamento
+  cancelledBy?: {
+    username: string;
+  };
+  cancelledAt?: string;
+  cancellationReason?: string;
 }
 
 export default function GarcomPedidos() {
@@ -46,6 +53,12 @@ export default function GarcomPedidos() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [filter, setFilter] = useState<string>('todos');
+  
+  // Estados para cancelamento
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     // Verificar autenticação
@@ -107,6 +120,61 @@ export default function GarcomPedidos() {
     }
   };
 
+  // Função para cancelar pedido
+  const cancelOrder = async () => {
+    if (!orderToCancel || !cancellationReason.trim() || cancellationReason.trim().length < 10) {
+      alert('Motivo do cancelamento é obrigatório e deve ter pelo menos 10 caracteres.');
+      return;
+    }
+
+    setCancelling(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/orders/${orderToCancel._id}/cancel`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: cancellationReason.trim() })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Pedido cancelado com sucesso!');
+        closeCancelModal();
+        await loadOrders(); // Recarregar pedidos
+      } else {
+        alert('Erro ao cancelar pedido: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar pedido:', error);
+      alert('Erro de conexão');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // Funções para o modal de cancelamento
+  const openCancelModal = (order: Order) => {
+    setOrderToCancel(order);
+    setCancellationReason('');
+    setShowCancelModal(true);
+  };
+
+  const closeCancelModal = () => {
+    setOrderToCancel(null);
+    setCancellationReason('');
+    setShowCancelModal(false);
+  };
+
+  // Verificar se pode cancelar pedido
+  const canCancelOrder = (order: Order) => {
+    return order.status === 'preparando' || order.status === 'pronto';
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'preparando': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
@@ -147,7 +215,8 @@ export default function GarcomPedidos() {
       total: orders.length,
       preparando: orders.filter(o => o.status === 'preparando').length,
       pronto: orders.filter(o => o.status === 'pronto').length,
-      entregue: orders.filter(o => o.status === 'entregue').length
+      entregue: orders.filter(o => o.status === 'entregue').length,
+      cancelado: orders.filter(o => o.status === 'cancelado').length
     };
   };
 
@@ -246,12 +315,13 @@ export default function GarcomPedidos() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.6 }}
         >
-          <StaggeredGrid className="grid grid-cols-2 lg:grid-cols-4 gap-4" staggerDelay={0.1}>
+          <StaggeredGrid className="grid grid-cols-2 lg:grid-cols-5 gap-4" staggerDelay={0.1}>
             {[
               { title: 'Total', value: stats.total, color: 'from-blue-600 to-blue-700', bgColor: 'bg-blue-50 dark:bg-blue-900/20', textColor: 'text-blue-600 dark:text-blue-400' },
               { title: 'Preparando', value: stats.preparando, color: 'from-amber-600 to-amber-700', bgColor: 'bg-amber-50 dark:bg-amber-900/20', textColor: 'text-amber-600 dark:text-amber-400' },
               { title: 'Prontos', value: stats.pronto, color: 'from-green-600 to-green-700', bgColor: 'bg-green-50 dark:bg-green-900/20', textColor: 'text-green-600 dark:text-green-400' },
               { title: 'Entregues', value: stats.entregue, color: 'from-purple-600 to-purple-700', bgColor: 'bg-purple-50 dark:bg-purple-900/20', textColor: 'text-purple-600 dark:text-purple-400' },
+              { title: 'Cancelados', value: stats.cancelado, color: 'from-red-600 to-red-700', bgColor: 'bg-red-50 dark:bg-red-900/20', textColor: 'text-red-600 dark:text-red-400' },
             ].map((stat, index) => (
               <StaggeredItem key={stat.title}>
                 <AnimatedCard
@@ -385,25 +455,66 @@ export default function GarcomPedidos() {
                         {/* Botões de ação */}
                         <div className="flex gap-2">
                           {order.status === 'preparando' && (
-                            <AnimatedButton
-                              variant="success"
-                              size="sm"
-                              onClick={() => updateOrderStatus(order._id, 'pronto')}
-                            >
-                              ✅ Marcar como Pronto
-                            </AnimatedButton>
+                            <>
+                              <AnimatedButton
+                                variant="danger"
+                                size="sm"
+                                onClick={() => openCancelModal(order)}
+                              >
+                                🚫 Cancelar
+                              </AnimatedButton>
+                              <AnimatedButton
+                                variant="success"
+                                size="sm"
+                                onClick={() => updateOrderStatus(order._id, 'pronto')}
+                              >
+                                ✅ Marcar como Pronto
+                              </AnimatedButton>
+                            </>
                           )}
                           {order.status === 'pronto' && (
-                            <AnimatedButton
-                              variant="primary"
-                              size="sm"
-                              onClick={() => updateOrderStatus(order._id, 'entregue')}
-                            >
-                              🚚 Marcar como Entregue
-                            </AnimatedButton>
+                            <>
+                              <AnimatedButton
+                                variant="danger"
+                                size="sm"
+                                onClick={() => openCancelModal(order)}
+                              >
+                                🚫 Cancelar
+                              </AnimatedButton>
+                              <AnimatedButton
+                                variant="primary"
+                                size="sm"
+                                onClick={() => updateOrderStatus(order._id, 'entregue')}
+                              >
+                                🚚 Marcar como Entregue
+                              </AnimatedButton>
+                            </>
                           )}
                         </div>
                       </div>
+
+                      {/* Informações de cancelamento */}
+                      {order.status === 'cancelado' && order.cancellationReason && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                                Pedido Cancelado
+                              </p>
+                              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                                <strong>Motivo:</strong> {order.cancellationReason}
+                              </p>
+                              {order.cancelledBy && (
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                  Cancelado por: {order.cancelledBy.username}
+                                  {order.cancelledAt && ` em ${new Date(order.cancelledAt).toLocaleString('pt-BR')}`}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </AnimatedCard>
                 </StaggeredItem>
@@ -412,6 +523,119 @@ export default function GarcomPedidos() {
           )}
         </motion.div>
       </main>
+
+      {/* Modal de Cancelamento */}
+      {showCancelModal && orderToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Header do Modal */}
+            <div className="bg-red-600 text-white p-6 rounded-t-xl flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold">Cancelar Pedido</h2>
+                <p className="text-red-100 mt-1">
+                  Mesa {orderToCancel.tableId.number} • {formatCurrency(orderToCancel.totalAmount)}
+                </p>
+              </div>
+              <button
+                onClick={closeCancelModal}
+                className="text-white hover:text-gray-200 text-2xl font-bold w-8 h-8 flex items-center justify-center"
+                disabled={cancelling}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-700 dark:text-gray-300 mb-4">
+                  Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.
+                </p>
+                
+                {/* Lista de itens do pedido */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-4">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Itens do pedido:</h4>
+                  <div className="space-y-1">
+                    {orderToCancel.items.map((item, index) => (
+                      <div key={index} className="text-sm text-gray-600 dark:text-gray-400">
+                        {item.quantity}x {item.productName}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Campo de motivo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Motivo do cancelamento *
+                  </label>
+                  <textarea
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    placeholder="Descreva o motivo do cancelamento (mínimo 10 caracteres)..."
+                    className="
+                      w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
+                      rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                      focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500
+                      resize-none
+                    "
+                    rows={3}
+                    disabled={cancelling}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {cancellationReason.length}/10 caracteres mínimos
+                  </p>
+                </div>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="flex gap-3">
+                <button
+                  onClick={closeCancelModal}
+                  disabled={cancelling}
+                  className="
+                    flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 
+                    rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 
+                    focus:outline-none focus:ring-2 focus:ring-gray-500
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors duration-200
+                  "
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={cancelOrder}
+                  disabled={cancelling || cancellationReason.trim().length < 10}
+                  className="
+                    flex-1 px-4 py-3 bg-red-600 text-white rounded-lg 
+                    hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors duration-200 font-medium
+                  "
+                >
+                  {cancelling ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <motion.div
+                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      />
+                      Cancelando...
+                    </span>
+                  ) : (
+                    '🚫 Confirmar Cancelamento'
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <GarcomBottomNav />
     </AnimatedPageContainer>
