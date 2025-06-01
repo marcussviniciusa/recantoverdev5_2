@@ -1,8 +1,6 @@
 'use client';
 
-import { Dialog, Transition } from '@headlessui/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Fragment, ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 interface AnimatedModalProps {
@@ -34,112 +32,86 @@ export default function AnimatedModal({
   closeOnOverlayClick = true,
   className = '',
 }: AnimatedModalProps) {
+  // Prevenir scroll do body quando modal está aberto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  // Fechar modal com ESC
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, [isOpen, onClose]);
+
+  // Não renderizar nada se modal não estiver aberto
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <Dialog
-          as={motion.div}
-          static
-          open={isOpen}
-          onClose={closeOnOverlayClick ? onClose : () => {}}
-          className="relative z-50"
-        >
-          {/* Backdrop */}
-          <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-          />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={closeOnOverlayClick ? onClose : undefined}
+      />
 
-          {/* Modal Container */}
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
-              <motion.div
-                className={`
-                  w-full ${sizes[size]} transform overflow-hidden rounded-3xl
-                  bg-white dark:bg-gray-900 text-left align-middle shadow-2xl 
-                  transition-all relative
-                  ${className}
-                `}
-                initial={{ 
-                  opacity: 0, 
-                  scale: 0.8,
-                  y: 50,
-                }}
-                animate={{ 
-                  opacity: 1, 
-                  scale: 1,
-                  y: 0,
-                }}
-                exit={{ 
-                  opacity: 0, 
-                  scale: 0.8,
-                  y: 50,
-                }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30,
-                }}
+      {/* Modal */}
+      <div
+        className={`
+          relative w-full ${sizes[size]} transform overflow-hidden rounded-3xl
+          bg-white dark:bg-gray-900 text-left align-middle shadow-2xl 
+          transition-all max-h-[90vh] overflow-y-auto
+          ${className}
+        `}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        {(title || showCloseButton) && (
+          <div className="flex items-center justify-between p-6 pb-0">
+            {title && (
+              <h3 className="text-xl font-semibold leading-6 text-gray-900 dark:text-white">
+                {title}
+              </h3>
+            )}
+            
+            {showCloseButton && (
+              <button
+                onClick={onClose}
+                className="
+                  rounded-full p-2 text-gray-400 hover:text-gray-600 
+                  dark:text-gray-500 dark:hover:text-gray-300
+                  hover:bg-gray-100 dark:hover:bg-gray-800
+                  transition-colors duration-200
+                  focus:outline-none focus:ring-2 focus:ring-primary-500
+                "
+                type="button"
               >
-                {/* Glow effect */}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary-500/20 via-transparent to-transparent opacity-0 animate-pulse" />
-                
-                {/* Header */}
-                {(title || showCloseButton) && (
-                  <motion.div
-                    className="flex items-center justify-between p-6 pb-0"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.3 }}
-                  >
-                    {title && (
-                      <Dialog.Title
-                        as="h3"
-                        className="text-xl font-semibold leading-6 text-gray-900 dark:text-white"
-                      >
-                        {title}
-                      </Dialog.Title>
-                    )}
-                    
-                    {showCloseButton && (
-                      <motion.button
-                        onClick={onClose}
-                        className="
-                          rounded-full p-2 text-gray-400 hover:text-gray-600 
-                          dark:text-gray-500 dark:hover:text-gray-300
-                          hover:bg-gray-100 dark:hover:bg-gray-800
-                          transition-colors duration-200
-                          focus:outline-none focus:ring-2 focus:ring-primary-500
-                        "
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        initial={{ opacity: 0, rotate: -90 }}
-                        animate={{ opacity: 1, rotate: 0 }}
-                        transition={{ delay: 0.2, duration: 0.3 }}
-                      >
-                        <XMarkIcon className="h-5 w-5" />
-                      </motion.button>
-                    )}
-                  </motion.div>
-                )}
-
-                {/* Content */}
-                <motion.div
-                  className="p-6"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15, duration: 0.3 }}
-                >
-                  {children}
-                </motion.div>
-              </motion.div>
-            </div>
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            )}
           </div>
-        </Dialog>
-      )}
-    </AnimatePresence>
+        )}
+
+        {/* Content */}
+        <div className="p-6">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 } 

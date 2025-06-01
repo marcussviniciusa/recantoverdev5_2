@@ -203,12 +203,27 @@ export async function PUT(
         table.closedAt = undefined;
       }
 
-      // Se está sendo liberada
+      // Se está sendo liberada - NOVA LÓGICA: deletar mesa ao invés de liberar
       if (status === 'disponivel') {
-        table.currentCustomers = undefined;
-        table.identification = undefined;
-        table.assignedWaiter = undefined;
-        table.closedAt = new Date();
+        // Verificar se é o garçom dono da mesa ou admin
+        if (user.role === 'garcom' && table.assignedWaiter?.toString() !== user.id) {
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Você só pode liberar suas próprias mesas' 
+            },
+            { status: 403 }
+          );
+        }
+
+        // Deletar a mesa ao invés de liberar
+        await Table.findByIdAndDelete(id);
+
+        return NextResponse.json({
+          success: true,
+          data: null,
+          message: 'Mesa liberada e removida com sucesso'
+        });
       }
     }
 
@@ -249,7 +264,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Deletar mesa (apenas recepcionistas)
+// DELETE - Deletar mesa (recepcionistas ou garçom dono da mesa)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -270,17 +285,6 @@ export async function DELETE(
       );
     }
 
-    // Verificar permissão
-    if (!hasPermission(user, 'recepcionista')) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Apenas recepcionistas podem deletar mesas' 
-        },
-        { status: 403 }
-      );
-    }
-
     const { id } = await params;
 
     // Buscar mesa
@@ -296,15 +300,17 @@ export async function DELETE(
       );
     }
 
-    // Verificar se a mesa está ocupada
-    if (table.status === 'ocupada') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Não é possível deletar uma mesa ocupada' 
-        },
-        { status: 409 }
-      );
+    // Verificar permissão: admin pode deletar qualquer mesa, garçom só sua própria mesa
+    if (!hasPermission(user, 'recepcionista')) {
+      if (user.role !== 'garcom' || table.assignedWaiter?.toString() !== user.id) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Você só pode deletar suas próprias mesas' 
+          },
+          { status: 403 }
+        );
+      }
     }
 
     await Table.findByIdAndDelete(id);

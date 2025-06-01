@@ -9,20 +9,16 @@ interface Table {
   capacity: number;
   status: 'disponivel' | 'ocupada' | 'reservada' | 'manutencao';
   currentCustomers?: number;
+  identification?: string;
   openedAt?: string;
   closedAt?: string;
   assignedWaiter?: {
     _id: string;
-    name: string;
+    username: string;
+    email: string;
   };
   createdAt: string;
   updatedAt: string;
-}
-
-interface TableFormData {
-  number: number;
-  capacity: number;
-  status: 'disponivel' | 'ocupada' | 'reservada' | 'manutencao';
 }
 
 interface StatusStats {
@@ -37,16 +33,8 @@ export default function AdminMesas() {
   const [tables, setTables] = useState<Table[]>([]);
   const [filteredTables, setFilteredTables] = useState<Table[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [capacityFilter, setCapacityFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingTable, setEditingTable] = useState<Table | null>(null);
-  const [formData, setFormData] = useState<TableFormData>({
-    number: 0,
-    capacity: 2,
-    status: 'disponivel'
-  });
   const [stats, setStats] = useState<StatusStats>({
     disponivel: 0,
     ocupada: 0,
@@ -67,35 +55,35 @@ export default function AdminMesas() {
     loadTables();
   }, [router]);
 
+  // Filtrar tabelas quando mudarem os filtros
   useEffect(() => {
-    // Filtrar tabelas
     let filtered = tables;
 
     if (statusFilter) {
       filtered = filtered.filter(table => table.status === statusFilter);
     }
 
-    if (capacityFilter) {
-      if (capacityFilter === '1-2') {
-        filtered = filtered.filter(table => table.capacity <= 2);
-      } else if (capacityFilter === '3-4') {
-        filtered = filtered.filter(table => table.capacity >= 3 && table.capacity <= 4);
-      } else if (capacityFilter === '5-8') {
-        filtered = filtered.filter(table => table.capacity >= 5 && table.capacity <= 8);
-      } else if (capacityFilter === '9+') {
-        filtered = filtered.filter(table => table.capacity >= 9);
-      }
-    }
-
     if (searchTerm) {
       filtered = filtered.filter(table => 
         table.number.toString().includes(searchTerm) ||
-        table.assignedWaiter?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        table.assignedWaiter?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        table.identification?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     setFilteredTables(filtered);
-  }, [tables, statusFilter, capacityFilter, searchTerm]);
+  }, [tables, statusFilter, searchTerm]);
+
+  // Calcular estatísticas
+  useEffect(() => {
+    const newStats = {
+      disponivel: tables.filter(t => t.status === 'disponivel').length,
+      ocupada: tables.filter(t => t.status === 'ocupada').length,
+      reservada: tables.filter(t => t.status === 'reservada').length,
+      manutencao: tables.filter(t => t.status === 'manutencao').length
+    };
+    setStats(newStats);
+  }, [tables]);
 
   const loadTables = async () => {
     try {
@@ -109,114 +97,12 @@ export default function AdminMesas() {
 
       const data = await response.json();
       if (data.success) {
-        const tablesData = data.data.tables;
-        setTables(tablesData);
-
-        // Calcular estatísticas
-        const newStats = tablesData.reduce((acc: StatusStats, table: Table) => {
-          acc[table.status] = (acc[table.status] || 0) + 1;
-          return acc;
-        }, {
-          disponivel: 0,
-          ocupada: 0,
-          reservada: 0,
-          manutencao: 0
-        });
-        
-        setStats(newStats);
+        setTables(data.data.tables);
       }
     } catch (error) {
       console.error('Erro ao carregar mesas:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const openModal = (table?: Table) => {
-    if (table) {
-      setEditingTable(table);
-      setFormData({
-        number: table.number,
-        capacity: table.capacity,
-        status: table.status
-      });
-    } else {
-      setEditingTable(null);
-      setFormData({
-        number: tables.length + 1,
-        capacity: 2,
-        status: 'disponivel'
-      });
-    }
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingTable(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const token = localStorage.getItem('token');
-      const url = editingTable ? `/api/tables/${editingTable._id}` : '/api/tables';
-      const method = editingTable ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        await loadTables();
-        closeModal();
-        alert(editingTable ? 'Mesa atualizada com sucesso!' : 'Mesa criada com sucesso!');
-      } else {
-        alert('Erro: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Erro ao salvar mesa:', error);
-      alert('Erro de conexão');
-    }
-  };
-
-  const handleDelete = async (table: Table) => {
-    if (table.status === 'ocupada') {
-      alert('Não é possível excluir uma mesa ocupada!');
-      return;
-    }
-
-    if (!confirm(`Tem certeza que deseja excluir a Mesa ${table.number}?`)) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/tables/${table._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        await loadTables();
-        alert('Mesa excluída com sucesso!');
-      } else {
-        alert('Erro ao excluir mesa: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Erro ao excluir mesa:', error);
-      alert('Erro de conexão');
     }
   };
 
@@ -260,16 +146,6 @@ export default function AdminMesas() {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'disponivel': return 'Disponível';
-      case 'ocupada': return 'Ocupada';
-      case 'reservada': return 'Reservada';
-      case 'manutencao': return 'Manutenção';
-      default: return status;
-    }
-  };
-
   const formatTime = (dateString?: string) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleTimeString('pt-BR', { 
@@ -294,16 +170,16 @@ export default function AdminMesas() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestão de Mesas</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Monitoramento de Mesas</h1>
           <p className="mt-1 text-gray-600">
-            Controle administrativo de todas as mesas do restaurante
+            Visualização de todas as mesas criadas pelos garçons
           </p>
         </div>
         <button
-          onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          onClick={loadTables}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
-          + Nova Mesa
+          🔄 Atualizar
         </button>
       </div>
 
@@ -369,14 +245,14 @@ export default function AdminMesas() {
 
       {/* Filtros */}
       <div className="bg-white rounded-xl shadow p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Buscar
             </label>
             <input
               type="text"
-              placeholder="Número da mesa ou garçom..."
+              placeholder="Número da mesa, garçom ou cliente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -393,27 +269,10 @@ export default function AdminMesas() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Todos os status</option>
-              <option value="disponivel">Disponível</option>
               <option value="ocupada">Ocupada</option>
+              <option value="disponivel">Disponível</option>
               <option value="reservada">Reservada</option>
               <option value="manutencao">Manutenção</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Capacidade
-            </label>
-            <select
-              value={capacityFilter}
-              onChange={(e) => setCapacityFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Todas as capacidades</option>
-              <option value="1-2">1-2 pessoas</option>
-              <option value="3-4">3-4 pessoas</option>
-              <option value="5-8">5-8 pessoas</option>
-              <option value="9+">9+ pessoas</option>
             </select>
           </div>
         </div>
@@ -423,7 +282,7 @@ export default function AdminMesas() {
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Mesas ({filteredTables.length})
+            Mesas Ativas ({filteredTables.length})
           </h2>
         </div>
 
@@ -434,19 +293,11 @@ export default function AdminMesas() {
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma mesa encontrada</h3>
             <p className="text-gray-600 mb-4">
-              {searchTerm || statusFilter || capacityFilter 
+              {searchTerm || statusFilter 
                 ? 'Tente ajustar os filtros.' 
-                : 'Comece adicionando mesas ao restaurante.'
+                : 'As mesas aparecerão aqui quando os garçons criarem ao atender clientes.'
               }
             </p>
-            {!searchTerm && !statusFilter && !capacityFilter && (
-              <button
-                onClick={() => openModal()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                Adicionar Primeira Mesa
-              </button>
-            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -457,22 +308,19 @@ export default function AdminMesas() {
                     Mesa
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cliente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Capacidade
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Clientes
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Garçom
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Horário
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ações
                   </th>
                 </tr>
               </thead>
@@ -486,8 +334,15 @@ export default function AdminMesas() {
                         </div>
                         <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">Mesa {table.number}</div>
-                          <div className="text-sm text-gray-500">ID: {table._id.slice(-8)}</div>
+                          <div className="text-sm text-gray-500">
+                            {table.currentCustomers ? `${table.currentCustomers} cliente${table.currentCustomers > 1 ? 's' : ''}` : '-'}
+                          </div>
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {table.identification || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -497,44 +352,22 @@ export default function AdminMesas() {
                       <select
                         value={table.status}
                         onChange={(e) => changeTableStatus(table, e.target.value)}
-                        className={`text-xs font-semibold rounded-full px-2 py-1 border-0 ${getStatusColor(table.status)} focus:ring-2 focus:ring-blue-500`}
+                        className={`text-xs font-semibold rounded-full px-3 py-1 border-0 ${getStatusColor(table.status)} focus:ring-2 focus:ring-blue-500`}
                       >
-                        <option value="disponivel">Disponível</option>
                         <option value="ocupada">Ocupada</option>
+                        <option value="disponivel">Disponível</option>
                         <option value="reservada">Reservada</option>
                         <option value="manutencao">Manutenção</option>
                       </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {table.currentCustomers ? `${table.currentCustomers}/${table.capacity}` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {table.assignedWaiter?.name || '-'}
+                      {table.assignedWaiter?.username || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {table.status === 'ocupada' && table.openedAt 
                         ? `Aberta: ${formatTime(table.openedAt)}`
-                        : table.status === 'disponivel' && table.closedAt
-                        ? `Fechada: ${formatTime(table.closedAt)}`
                         : '-'
                       }
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => openModal(table)}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDelete(table)}
-                          className="text-red-600 hover:text-red-700"
-                          disabled={table.status === 'ocupada'}
-                        >
-                          Excluir
-                        </button>
-                      </div>
                     </td>
                   </tr>
                 ))}
@@ -543,98 +376,6 @@ export default function AdminMesas() {
           </div>
         )}
       </div>
-
-      {/* Modal de Mesa */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">
-                  {editingTable ? 'Editar Mesa' : 'Nova Mesa'}
-                </h2>
-                <button
-                  onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número da Mesa *
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={formData.number}
-                    onChange={(e) => setFormData({...formData, number: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Capacidade *
-                  </label>
-                  <select
-                    required
-                    value={formData.capacity}
-                    onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value={1}>1 pessoa</option>
-                    <option value={2}>2 pessoas</option>
-                    <option value={3}>3 pessoas</option>
-                    <option value={4}>4 pessoas</option>
-                    <option value={5}>5 pessoas</option>
-                    <option value={6}>6 pessoas</option>
-                    <option value={8}>8 pessoas</option>
-                    <option value={10}>10 pessoas</option>
-                    <option value={12}>12 pessoas</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status Inicial
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value as any})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="disponivel">Disponível</option>
-                    <option value="reservada">Reservada</option>
-                    <option value="manutencao">Manutenção</option>
-                  </select>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    {editingTable ? 'Atualizar' : 'Criar'} Mesa
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 

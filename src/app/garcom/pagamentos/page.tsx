@@ -144,14 +144,16 @@ export default function GarcomPagamentos() {
 
     if (searchTerm) {
       filtered = filtered.filter(payment => {
-        if (!payment.tableId || typeof payment.tableId !== 'object') {
-          return false;
-        }
+        // ✅ CORREÇÃO: Incluir pagamentos de mesas deletadas no histórico
+        // Se tableId for null, usar tableIdentification para busca
+        const tableNumber = payment.tableId?.number?.toString() || '';
+        const tableIdentification = payment.tableIdentification || '';
+        const originalIdentification = payment.tableId?.identification || '';
         
         return (
-          payment.tableId.number?.toString().includes(searchTerm) ||
-          (payment.tableIdentification && payment.tableIdentification.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (payment.tableId.identification && payment.tableId.identification.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          tableNumber.includes(searchTerm) ||
+          tableIdentification.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          originalIdentification.toLowerCase().includes(searchTerm.toLowerCase()) ||
           payment._id.toLowerCase().includes(searchTerm.toLowerCase())
         );
       });
@@ -307,27 +309,24 @@ export default function GarcomPagamentos() {
 
       setTablesData(result);
       
-      // Filtrar pagamentos válidos para o histórico
-      const validPaidPayments = paidPayments.filter(p => 
-        p.tableId && 
-        typeof p.tableId === 'object' && 
-        p.tableId.number !== undefined
-      );
-      
-      console.log('📊 Pagamentos - Pagamentos válidos para histórico:', validPaidPayments.length);
-      console.log('📊 Pagamentos - Pagamentos do garçom:', validPaidPayments.filter(p => 
+      // ✅ CORREÇÃO: Incluir TODOS os pagamentos para preservar histórico
+      // Não filtrar pagamentos de mesas deletadas - histórico deve ser preservado
+      console.log('📊 Pagamentos - Todos os pagamentos preservados:', paidPayments.length);
+      console.log('📊 Pagamentos - Pagamentos do garçom:', paidPayments.filter(p => 
         p.waiterId?.username === currentUsername
       ).length);
       
-      // Log para debug do problema de identificação histórica
-      validPaidPayments.forEach((p, index) => {
+      // Log para debug - incluindo mesas deletadas
+      paidPayments.forEach((p, index) => {
         if (p.waiterId?.username === currentUsername) {
-          console.log(`  ${index + 1}. Mesa ${p.tableId.number}: ${p._id.slice(-6)} - R$ ${p.totalAmount}`);
-          console.log(`    🔍 Identificação histórica: "${p.tableIdentification || 'VAZIO'}" vs atual: "${p.tableId.identification || 'VAZIO'}"`);
+          const tableNumber = p.tableId?.number || '?';
+          const isDeleted = !p.tableId?.number;
+          console.log(`  ${index + 1}. Mesa ${tableNumber}${isDeleted ? ' (deletada)' : ''}: ${p._id.slice(-6)} - R$ ${p.totalAmount}`);
+          console.log(`    🔍 Identificação histórica: "${p.tableIdentification || 'VAZIO'}"`);
         }
       });
       
-      setPaymentsHistory(validPaidPayments);
+      setPaymentsHistory(paidPayments);
 
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -760,9 +759,12 @@ export default function GarcomPagamentos() {
                       <>
                         <StaggeredGrid className="space-y-4 mb-6" staggerDelay={0.1}>
                           {filteredPayments.map((payment, index) => {
-                            if (!payment.tableId || typeof payment.tableId !== 'object') {
-                              return null;
-                            }
+                            // ✅ CORREÇÃO: Permitir pagamentos de mesas deletadas (histórico preservado)
+                            const tableDisplay = payment.tableId || {
+                              _id: null,
+                              number: null,
+                              identification: payment.tableIdentification
+                            };
                             
                             return (
                               <StaggeredItem key={payment._id}>
@@ -772,12 +774,17 @@ export default function GarcomPagamentos() {
                                       {/* Informações principais */}
                                       <div className="flex items-center gap-6 mb-4 lg:mb-0">
                                         <div className="w-12 h-12 bg-gradient-to-br from-primary-700 to-primary-900 rounded-xl flex items-center justify-center shadow-lg">
-                                          <span className="text-gray-900 font-bold text-lg">{payment.tableId.number}</span>
+                                          <span className="text-gray-900 font-bold text-lg">
+                                            {tableDisplay.number || '?'}
+                                          </span>
                                         </div>
                                         
                                         <div>
                                           <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                                            Mesa {payment.tableId.number}
+                                            Mesa {tableDisplay.number || '?'}
+                                            {!tableDisplay.number && (
+                                              <span className="text-xs text-gray-500 ml-2">(Mesa deletada)</span>
+                                            )}
                                           </div>
                                           <div className="text-sm text-gray-500 dark:text-gray-400">
                                             {payment.tableIdentification && `${payment.tableIdentification} • `}

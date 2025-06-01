@@ -31,10 +31,11 @@ export default function GarcomMesas() {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
-  const [showOpenModal, setShowOpenModal] = useState(false);
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [openTableForm, setOpenTableForm] = useState({
-    customers: '',
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createTableForm, setCreateTableForm] = useState({
+    number: '',
+    capacity: '4',
+    currentCustomers: '',
     identification: ''
   });
 
@@ -93,59 +94,79 @@ export default function GarcomMesas() {
     }
   };
 
-  const updateTableStatus = async (tableId: string, status: string, currentCustomers?: number, identification?: string) => {
+  const createTable = async () => {
+    if (!createTableForm.number || !createTableForm.capacity || !createTableForm.currentCustomers || !createTableForm.identification) {
+      alert('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
+    if (parseInt(createTableForm.currentCustomers) > parseInt(createTableForm.capacity)) {
+      alert('Número de clientes não pode exceder a capacidade da mesa');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/tables/${tableId}`, {
-        method: 'PUT',
+      const response = await fetch('/api/tables', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          status, 
-          currentCustomers,
-          identification,
-          assignedWaiter: status === 'ocupada' ? localStorage.getItem('userId') : undefined
+        body: JSON.stringify({
+          number: parseInt(createTableForm.number),
+          capacity: parseInt(createTableForm.capacity),
+          currentCustomers: parseInt(createTableForm.currentCustomers),
+          identification: createTableForm.identification.trim()
         })
       });
 
       const data = await response.json();
       if (data.success) {
         await loadTables(); // Recarregar mesas
-        setShowOpenModal(false);
-        setOpenTableForm({ customers: '', identification: '' });
+        setShowCreateModal(false);
+        setCreateTableForm({
+          number: '',
+          capacity: '4',
+          currentCustomers: '',
+          identification: ''
+        });
+        alert('Mesa criada e ocupada com sucesso!');
       } else {
-        alert('Erro ao atualizar mesa: ' + data.error);
+        alert('Erro ao criar mesa: ' + data.error);
       }
     } catch (error) {
-      console.error('Erro ao atualizar mesa:', error);
+      console.error('Erro ao criar mesa:', error);
       alert('Erro de conexão');
     }
   };
 
-  const openTableModal = (table: Table) => {
-    setSelectedTable(table);
-    setShowOpenModal(true);
-  };
-
-  const handleOpenTable = () => {
-    if (!selectedTable || !openTableForm.customers || parseInt(openTableForm.customers) <= 0) {
-      alert('Por favor, informe o número de clientes válido');
+  const releaseTable = async (tableId: string) => {
+    if (!confirm('Tem certeza que deseja liberar esta mesa? Ela será removida e só ficará no histórico de pagamentos.')) {
       return;
     }
 
-    if (parseInt(openTableForm.customers) > selectedTable.capacity) {
-      alert(`Número de clientes não pode exceder a capacidade da mesa (${selectedTable.capacity})`);
-      return;
-    }
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/tables/${tableId}/release`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    updateTableStatus(
-      selectedTable._id, 
-      'ocupada', 
-      parseInt(openTableForm.customers),
-      openTableForm.identification || undefined
-    );
+      const data = await response.json();
+      if (data.success) {
+        await loadTables(); // Recarregar mesas
+        alert('Mesa liberada com sucesso!');
+      } else {
+        alert('Erro ao liberar mesa: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao liberar mesa:', error);
+      alert('Erro de conexão');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -199,7 +220,7 @@ export default function GarcomMesas() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              Carregando mesas...
+              Carregando suas mesas...
             </motion.h2>
           </AnimatedCard>
         </div>
@@ -208,191 +229,152 @@ export default function GarcomMesas() {
   }
 
   return (
-    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Header */}
-      <motion.header
-        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 shadow-lg sticky top-0 z-40"
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <motion.div
-              className="flex items-center"
-              initial={{ x: -50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-lg font-bold">RV</span>
-              </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Recanto Verde</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">👨‍🍳 Garçom - {userName}</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="flex items-center gap-3"
-              initial={{ x: 50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <AnimatedButton
-                variant="secondary"
-                size="sm"
-                onClick={logout}
-                className="font-medium"
-              >
-                🚪 Sair
-              </AnimatedButton>
-            </motion.div>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-        {/* Stats Summary */}
+    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 to-green-50 dark:from-gray-900 dark:to-gray-800">
+      <main className="min-h-screen p-4 pb-20">
+        {/* Header */}
         <motion.div
-          className="mb-8"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
+          className="flex justify-between items-center mb-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Disponíveis', count: tables.filter(t => t.status === 'disponivel').length, color: 'from-green-400 to-green-500', icon: '✅' },
-              { label: 'Ocupadas', count: tables.filter(t => t.status === 'ocupada').length, color: 'from-red-400 to-red-500', icon: '🔴' },
-              { label: 'Reservadas', count: tables.filter(t => t.status === 'reservada').length, color: 'from-amber-400 to-amber-500', icon: '⏰' },
-              { label: 'Manutenção', count: tables.filter(t => t.status === 'manutencao').length, color: 'from-gray-400 to-gray-500', icon: '🔧' },
-            ].map((stat, index) => (
-              <AnimatedCard
-                key={stat.label}
-                variant="glass"
-                padding="md"
-                className={`bg-gradient-to-br ${stat.color} text-white border-0`}
-                delay={0.1 * index}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white/80 text-sm font-medium">{stat.label}</p>
-                    <p className="text-2xl font-bold">{stat.count}</p>
-                  </div>
-                  <span className="text-2xl">{stat.icon}</span>
-                </div>
-              </AnimatedCard>
-            ))}
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white">
+              Minhas Mesas
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">
+              Olá, {userName}! Gerencie suas mesas ativas
+            </p>
           </div>
+          <AnimatedButton
+            variant="primary"
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2"
+          >
+            ➕ Nova Mesa
+          </AnimatedButton>
         </motion.div>
 
-        {/* Tables Grid */}
+        {/* Estatísticas */}
         <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              🪑 Mesas ({tables.length})
-            </h2>
-            <AnimatedButton
-              variant="secondary"
-              size="sm"
-              onClick={loadTables}
-              className="font-medium"
-            >
-              🔄 Atualizar
-            </AnimatedButton>
-          </div>
+          <AnimatedCard variant="gradient" className="text-center">
+            <div className="text-2xl font-bold text-white">{tables.length}</div>
+            <div className="text-sm text-white opacity-90">Minhas Mesas</div>
+          </AnimatedCard>
+          <AnimatedCard variant="gradient" className="text-center">
+            <div className="text-2xl font-bold text-white">
+              {tables.filter(t => t.status === 'ocupada').length}
+            </div>
+            <div className="text-sm text-white opacity-90">Ocupadas</div>
+          </AnimatedCard>
+          <AnimatedCard variant="gradient" className="text-center">
+            <div className="text-2xl font-bold text-white">
+              {tables.reduce((acc, table) => acc + (table.currentCustomers || 0), 0)}
+            </div>
+            <div className="text-sm text-white opacity-90">Clientes</div>
+          </AnimatedCard>
+          <AnimatedCard variant="gradient" className="text-center">
+            <div className="text-2xl font-bold text-white">
+              R$ {(tables.length * 50).toFixed(2)}
+            </div>
+            <div className="text-sm text-white opacity-90">Estimativa</div>
+          </AnimatedCard>
+        </motion.div>
 
-          <StaggeredGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" staggerDelay={0.1}>
-            {tables.map((table) => (
-              <StaggeredItem key={table._id}>
-                <AnimatedCard
-                  variant="default"
-                  padding="lg"
-                  hoverable={true}
-                  clickable={table.status === 'disponivel'}
-                  onClick={table.status === 'disponivel' ? () => openTableModal(table) : undefined}
-                  className="h-full"
+        {/* Lista de Mesas */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          {tables.length === 0 ? (
+            <AnimatedCard variant="glass" padding="xl" className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              >
+                <div className="w-20 h-20 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">🍽️</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
+                  Nenhuma mesa ativa
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Crie uma nova mesa para começar a atender seus clientes
+                </p>
+                <AnimatedButton
+                  variant="primary"
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center gap-2 mx-auto"
                 >
-                  {/* Table Status Badge */}
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                      Mesa {table.number}
-                    </h3>
-                    <motion.span
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${getStatusColor(table.status)}`}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    >
-                      {getStatusIcon(table.status)} {getStatusText(table.status)}
-                    </motion.span>
-                  </div>
-
-                  {/* Table Info */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Capacidade:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">👥 {table.capacity} pessoas</span>
+                  ➕ Criar Primeira Mesa
+                </AnimatedButton>
+              </motion.div>
+            </AnimatedCard>
+          ) : (
+            <StaggeredGrid>
+              {tables.map((table) => (
+                <StaggeredItem key={table._id}>
+                  <AnimatedCard variant="glass" className="h-full hover:shadow-xl transition-all duration-300">
+                    {/* Header da Mesa */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getStatusColor(table.status)} flex items-center justify-center shadow-lg`}>
+                          <span className="text-white font-bold text-lg">{table.number}</span>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-800 dark:text-white">Mesa {table.number}</h3>
+                          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${getStatusColor(table.status)}`}>
+                            <span>{getStatusIcon(table.status)}</span>
+                            {getStatusText(table.status)}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {table.status === 'ocupada' && (
-                      <>
-                        {table.currentCustomers && (
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Clientes:</span>
-                            <span className="font-medium text-red-600">🧑‍🤝‍🧑 {table.currentCustomers}</span>
-                          </div>
-                        )}
-                        {table.identification && (
-                          <div className="text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Identificação:</span>
-                            <p className="font-medium text-gray-900 dark:text-white mt-1">📝 {table.identification}</p>
-                          </div>
-                        )}
-                        {table.assignedWaiter && (
-                          <div className="text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Garçom:</span>
-                            <p className="font-medium text-primary-600">👨‍🍳 {table.assignedWaiter.username}</p>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                    {/* Informações da Mesa */}
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Capacidade:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">👥 {table.capacity} pessoas</span>
+                      </div>
 
-                  {/* Actions */}
-                  <div className="mt-6 space-y-2">
-                    {table.status === 'disponivel' && (
-                      <AnimatedButton
-                        variant="success"
-                        size="sm"
-                        fullWidth
-                        onClick={() => openTableModal(table)}
-                      >
-                        ✅ Abrir Mesa
-                      </AnimatedButton>
-                    )}
+                      {table.status === 'ocupada' && (
+                        <>
+                          {table.currentCustomers && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Clientes:</span>
+                              <span className="font-medium text-red-600">🧑‍🤝‍🧑 {table.currentCustomers}</span>
+                            </div>
+                          )}
+                          {table.identification && (
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">Cliente:</span>
+                              <p className="font-medium text-gray-900 dark:text-white mt-1">📝 {table.identification}</p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
 
+                    {/* Actions */}
                     {table.status === 'ocupada' && (
-                      <div className="space-y-3">
-                        {/* Botões principais - primeira linha */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <Link href={`/garcom/pedido/${table._id}`} title="Criar novo pedido para esta mesa">
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-1 gap-2">
+                          <Link href={`/garcom/pedido/${table._id}`} title="Fazer pedido para esta mesa">
                             <AnimatedButton variant="primary" size="sm" fullWidth>
-                              ➕ Novo Pedido
-                            </AnimatedButton>
-                          </Link>
-                          <Link href={`/garcom/pedidos?mesa=${table.number}`} title="Ver todos os pedidos desta mesa">
-                            <AnimatedButton variant="secondary" size="sm" fullWidth>
-                              📋 Ver Pedidos
+                              🛍️ Fazer Pedido
                             </AnimatedButton>
                           </Link>
                         </div>
-                        
-                        {/* Botões de finalização - segunda linha */}
+
                         <div className="grid grid-cols-2 gap-2">
                           <Link href={`/garcom/conta/${table._id}`} title="Fechar conta e processar pagamento">
                             <AnimatedButton variant="warning" size="sm" fullWidth>
@@ -403,108 +385,133 @@ export default function GarcomMesas() {
                             variant="danger"
                             size="sm"
                             fullWidth
-                            onClick={() => updateTableStatus(table._id, 'disponivel')}
+                            onClick={() => releaseTable(table._id)}
                           >
                             🔓 Liberar Mesa
                           </AnimatedButton>
                         </div>
                       </div>
                     )}
-
-                    {table.status === 'reservada' && (
-                      <AnimatedButton
-                        variant="warning"
-                        size="sm"
-                        fullWidth
-                        onClick={() => updateTableStatus(table._id, 'ocupada', 1)}
-                      >
-                        ⏰ Confirmar Reserva
-                      </AnimatedButton>
-                    )}
-                  </div>
-                </AnimatedCard>
-              </StaggeredItem>
-            ))}
-          </StaggeredGrid>
+                  </AnimatedCard>
+                </StaggeredItem>
+              ))}
+            </StaggeredGrid>
+          )}
         </motion.div>
       </main>
 
-      {/* Open Table Modal */}
-      <AnimatedModal
-        isOpen={showOpenModal}
-        onClose={() => setShowOpenModal(false)}
-        title={`Abrir Mesa ${selectedTable?.number}`}
-        size="md"
-      >
-        <div className="space-y-6">
-          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-              <span className="text-lg">ℹ️</span>
-              <div>
-                <h4 className="font-medium">Mesa {selectedTable?.number}</h4>
-                <p className="text-sm">Capacidade máxima: {selectedTable?.capacity} pessoas</p>
-              </div>
-            </div>
-          </div>
+      <GarcomBottomNav />
 
+      {/* Modal de Criar Mesa */}
+      <AnimatedModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="✨ Criar Nova Mesa"
+        size="md"
+        closeOnOverlayClick={false}
+      >
+        <form onSubmit={(e) => { e.preventDefault(); createTable(); }} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Número de Clientes *
+            <label htmlFor="table-number" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Número da Mesa *
             </label>
             <input
+              id="table-number"
+              name="table-number"
               type="number"
               min="1"
-              max={selectedTable?.capacity}
-              value={openTableForm.customers}
-              onChange={(e) => setOpenTableForm({...openTableForm, customers: e.target.value})}
-              className="
-                w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
-                rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-                transition-all duration-200
-              "
-              placeholder="Ex: 2"
+              placeholder="Ex: 1, 2, 3..."
+              value={createTableForm.number}
+              onChange={(e) => setCreateTableForm({...createTableForm, number: e.target.value})}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+              autoFocus
+              autoComplete="off"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Identificação (opcional)
+            <label htmlFor="table-capacity" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Capacidade da Mesa *
+            </label>
+            <select
+              id="table-capacity"
+              name="table-capacity"
+              value={createTableForm.capacity}
+              onChange={(e) => setCreateTableForm({...createTableForm, capacity: e.target.value})}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+              required
+            >
+              <option value="2">2 pessoas</option>
+              <option value="4">4 pessoas</option>
+              <option value="6">6 pessoas</option>
+              <option value="8">8 pessoas</option>
+              <option value="10">10 pessoas</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="current-customers" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Número de Clientes *
             </label>
             <input
+              id="current-customers"
+              name="current-customers"
+              type="number"
+              min="1"
+              max={createTableForm.capacity}
+              placeholder="Quantos clientes na mesa?"
+              value={createTableForm.currentCustomers}
+              onChange={(e) => setCreateTableForm({...createTableForm, currentCustomers: e.target.value})}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+              autoComplete="off"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="customer-identification" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Nome/Identificação do Cliente *
+            </label>
+            <input
+              id="customer-identification"
+              name="customer-identification"
               type="text"
-              value={openTableForm.identification}
-              onChange={(e) => setOpenTableForm({...openTableForm, identification: e.target.value})}
-              className="
-                w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
-                rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm
-                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-                transition-all duration-200
-              "
-              placeholder="Ex: João Silva, Mesa VIP..."
+              maxLength={100}
+              placeholder="Ex: João Silva, Mesa do casal..."
+              value={createTableForm.identification}
+              onChange={(e) => setCreateTableForm({...createTableForm, identification: e.target.value})}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+              autoComplete="off"
+              required
             />
           </div>
 
           <div className="flex gap-3 pt-4">
-            <AnimatedButton
-              variant="secondary"
-              fullWidth
-              onClick={() => setShowOpenModal(false)}
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(false);
+                setCreateTableForm({
+                  number: '',
+                  capacity: '4',
+                  currentCustomers: '',
+                  identification: ''
+                });
+              }}
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              ❌ Cancelar
-            </AnimatedButton>
-            <AnimatedButton
-              variant="success"
-              fullWidth
-              onClick={handleOpenTable}
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
-              ✅ Abrir Mesa
-            </AnimatedButton>
+              ✨ Criar Mesa
+            </button>
           </div>
-        </div>
+        </form>
       </AnimatedModal>
-
-      <GarcomBottomNav />
     </AnimatedPageContainer>
   );
 } 

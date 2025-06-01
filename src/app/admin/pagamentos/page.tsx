@@ -904,10 +904,13 @@ export default function AdminPagamentos() {
               ) : (
                 <div className="space-y-4">
                   {filteredPayments.map((payment) => {
-                    // Verificar se payment.tableId é válido antes de renderizar
-                    if (!payment.tableId || typeof payment.tableId !== 'object') {
-                      return null;
-                    }
+                    // ✅ CORREÇÃO: Permitir pagamentos de mesas deletadas (histórico preservado)
+                    // Se tableId é null (mesa deletada), ainda assim mostrar o pagamento
+                    const tableDisplay = payment.tableId || {
+                      _id: null,
+                      number: null,
+                      identification: payment.tableIdentification
+                    };
                     
                     return (
                       <div
@@ -919,12 +922,17 @@ export default function AdminPagamentos() {
                           {/* Informações principais */}
                           <div className="flex items-center gap-6 mb-4 lg:mb-0">
                             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                              <span className="text-green-800 font-bold text-lg">{payment.tableId.number || '?'}</span>
+                              <span className="text-green-800 font-bold text-lg">
+                                {tableDisplay.number || '?'}
+                              </span>
                             </div>
                             
                             <div>
                               <div className="text-lg font-semibold text-gray-900">
-                                Mesa {payment.tableId.number || 'N/A'}
+                                Mesa {tableDisplay.number || '?'}
+                                {!tableDisplay.number && (
+                                  <span className="text-xs text-gray-500 ml-2">(Mesa deletada)</span>
+                                )}
                               </div>
                               <div className="text-sm text-gray-500">
                                 {payment.tableIdentification && `${payment.tableIdentification} • `}
@@ -1021,7 +1029,10 @@ export default function AdminPagamentos() {
             <div className="bg-blue-600 text-white p-6 flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold">
-                  Detalhes do Pagamento - Mesa {selectedPayment.tableId.number}
+                  Detalhes do Pagamento - Mesa {selectedPayment.tableId?.number || '?'}
+                  {!selectedPayment.tableId?.number && (
+                    <span className="text-sm text-blue-200 ml-2">(Mesa deletada)</span>
+                  )}
                 </h2>
                 <p className="text-blue-100 mt-1">
                   {selectedPayment.tableIdentification && `${selectedPayment.tableIdentification} • `}

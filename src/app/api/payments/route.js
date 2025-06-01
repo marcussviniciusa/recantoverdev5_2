@@ -114,27 +114,42 @@ export async function GET(request) {
       .populate('waiterId', 'username email')
       .sort({ paidAt: -1 });
 
-    // Filtrar apenas pagamentos com tableId válido (para evitar referências órfãs)
-    const validPayments = payments.filter(payment => 
-      payment.tableId && 
-      payment.tableId.number !== undefined
-    );
+    // ✅ CORREÇÃO: Preservar histórico de pagamentos mesmo quando mesa é deletada
+    // Processar pagamentos para incluir dados históricos
+    const processedPayments = payments.map(payment => {
+      const paymentObj = payment.toObject();
+      
+      // Se mesa foi deletada (tableId é null), usar dados históricos
+      if (!paymentObj.tableId) {
+        paymentObj.tableId = {
+          _id: null,
+          number: null, // Será mostrado como "Mesa ?" na interface
+          identification: paymentObj.tableIdentification, // Dados preservados
+          status: 'deletada' // Indicador de que mesa foi deletada
+        };
+      }
+      
+      return paymentObj;
+    });
 
-    console.log(`📊 Pagamentos encontrados: ${payments.length}, válidos: ${validPayments.length}`);
+    console.log(`📊 Pagamentos encontrados: ${payments.length}, todos preservados no histórico`);
     
-    if (payments.length !== validPayments.length) {
-      console.warn(`⚠️ Encontradas ${payments.length - validPayments.length} referências órfãs de pagamentos`);
+    // Contar pagamentos órfãos (mesa deletada)
+    const orphanPayments = payments.filter(payment => !payment.tableId);
+    if (orphanPayments.length > 0) {
+      console.log(`✅ Histórico preservado: ${orphanPayments.length} pagamentos de mesas deletadas`);
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        payments: validPayments,
-        total: validPayments.length
+        payments: processedPayments,
+        total: processedPayments.length,
+        orphanCount: orphanPayments.length
       },
       message: decoded.role === 'garcom' 
-        ? 'Retornando pagamentos do garçom logado' 
-        : 'Retornando todos os pagamentos válidos do novo sistema por mesa'
+        ? 'Retornando pagamentos do garçom logado (histórico completo)' 
+        : 'Retornando todos os pagamentos do sistema (histórico completo)'
     });
 
   } catch (error) {

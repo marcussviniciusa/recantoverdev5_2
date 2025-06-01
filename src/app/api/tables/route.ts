@@ -3,7 +3,7 @@ import connectDB from '../../../../lib/db';
 import Table from '../../../../models/Table';
 import { authenticateRequest, hasPermission } from '../../../../lib/auth';
 
-// GET - Listar todas as mesas
+// GET - Listar mesas (filtradas por garçom se não for admin)
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -21,10 +21,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar todas as mesas
-    const tables = await Table.find()
-      .populate('assignedWaiter', 'username email')
-      .sort({ number: 1 });
+    let tables;
+
+    // Se for admin (recepcionista), ver todas as mesas
+    if (hasPermission(user, 'recepcionista')) {
+      tables = await Table.find()
+        .populate('assignedWaiter', 'username email')
+        .sort({ number: 1 });
+    } else {
+      // Se for garçom, ver apenas suas próprias mesas
+      tables = await Table.find({ assignedWaiter: user.id })
+        .populate('assignedWaiter', 'username email')
+        .sort({ number: 1 });
+    }
 
     return NextResponse.json({
       success: true,
@@ -46,7 +55,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Criar nova mesa (apenas recepcionistas)
+// POST - Criar nova mesa (garçoms criam mesas dinamicamente)
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
@@ -64,26 +73,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar permissão
-    if (!hasPermission(user, 'recepcionista')) {
+    // Agora garçoms podem criar mesas
+    if (!hasPermission(user, 'garcom') && !hasPermission(user, 'recepcionista')) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Apenas recepcionistas podem criar mesas' 
+          error: 'Apenas garçoms e recepcionistas podem criar mesas' 
         },
         { status: 403 }
       );
     }
 
     const body = await request.json();
-    const { number, capacity } = body;
+    const { number, capacity, currentCustomers, identification } = body;
 
     // Validação dos dados
-    if (!number || !capacity) {
+    if (!number || !capacity || !currentCustomers) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Número e capacidade da mesa são obrigatórios' 
+          error: 'Número da mesa, capacidade e número de clientes são obrigatórios' 
         },
         { status: 400 }
       );
@@ -109,33 +118,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (currentCustomers < 1 || currentCustomers > capacity) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Número de clientes deve ser entre 1 e a capacidade da mesa' 
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!identification || identification.trim() === '') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Nome/identificação do cliente é obrigatório' 
+        },
+        { status: 400 }
+      );
+    }
+
     // Verificar se já existe mesa com o mesmo número
     const existingTable = await Table.findOne({ number });
     if (existingTable) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Já existe uma mesa com este número' 
+          error: 'Já existe uma mesa com este número. Escolha outro número.' 
         },
         { status: 409 }
       );
     }
 
-    // Criar nova mesa
+    // Criar nova mesa já ocupada pelo garçom
     const newTable = new Table({
       number,
       capacity,
-      status: 'disponivel'
+      status: 'ocupada',
+      currentCustomers,
+      identification: identification.trim(),
+      assignedWaiter: user.id,
+      openedAt: new Date()
     });
 
     await newTable.save();
 
+    // Buscar a mesa criada com dados populados
+    const createdTable = await Table.findById(newTable._id)
+      .populate('assignedWaiter', 'username email');
+
     return NextResponse.json({
       success: true,
       data: {
-        table: newTable
+        table: createdTable
       },
-      message: 'Mesa criada com sucesso'
+      message: 'Mesa criada e ocupada com sucesso'
     }, { status: 201 });
 
   } catch (error) {
