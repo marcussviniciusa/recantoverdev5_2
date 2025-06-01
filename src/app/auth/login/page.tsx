@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import AnimatedButton from '../../../components/ui/AnimatedButton';
 import AnimatedCard from '../../../components/ui/AnimatedCard';
 import { AnimatedPageContainer } from '../../../components/ui/PageTransition';
 
-export default function Login() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -220,5 +220,13 @@ export default function Login() {
         </div>
       </div>
     </AnimatedPageContainer>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 } 

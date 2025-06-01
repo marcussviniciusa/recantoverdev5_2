@@ -48,71 +48,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const connectingRef = useRef<boolean>(false);
   const userDataRef = useRef<any | null>(null);
   
-  // Sons de notificação melhorados
+  // Sons de notificação usando Web Audio API
   const playNotificationSound = (type: string, userRole?: string) => {
     if (typeof window !== 'undefined') {
-      const audio = new Audio();
-      
-      switch (type) {
-        case 'new_order':
-          // Som discreto para novos pedidos (apenas recepcionistas)
-          audio.src = '/sounds/new-order.mp3';
-          audio.volume = 0.3;
-          break;
-          
-        case 'order_ready_waiter':
-          // Som específico e chamativo para garçom quando pedido fica pronto
-          audio.src = '/sounds/order-ready-waiter.mp3';
-          audio.volume = 0.8; // Volume alto para chamar atenção
-          // Tocar 3 vezes para garantir que o garçom ouça
-          playMultipleTimes(audio, 3, 500); // 3 vezes com intervalo de 500ms
-          return; // Retorna para não tocar novamente abaixo
-          
-        case 'order_ready':
-          // Som para recepcionistas quando pedido fica pronto
-          audio.src = '/sounds/order-ready.mp3';
-          audio.volume = 0.4;
-          break;
-          
-        case 'payment_received':
-          // Som para pagamento recebido
-          audio.src = '/sounds/payment.mp3';
-          audio.volume = 0.5;
-          break;
-          
-        default:
-          // Som padrão mais discreto
-          audio.src = '/sounds/notification.mp3';
-          audio.volume = 0.3;
-      }
-      
-      audio.play().catch(() => {
-        // Se não conseguir tocar o arquivo de áudio, usar som básico
-        playBasicSound(type);
-      });
-    }
-  };
-
-  // Função para tocar som múltiplas vezes (para pedidos prontos do garçom)
-  const playMultipleTimes = (audio: HTMLAudioElement, times: number, interval: number) => {
-    let count = 0;
-    const playNext = () => {
-      if (count < times) {
-        const audioClone = audio.cloneNode() as HTMLAudioElement;
-        audioClone.play().catch(() => {
-          // Fallback para som básico se não conseguir tocar
-          playBasicSound('order_ready_waiter');
-        });
-        count++;
-        setTimeout(playNext, interval);
-      }
-    };
-    playNext();
-  };
-
-  // Sons básicos usando Web Audio API como fallback
-  const playBasicSound = (type: string) => {
-    if (typeof window !== 'undefined') {
+      // Usar diretamente Web Audio API para evitar 404s
       try {
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         
@@ -153,11 +92,18 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
             setTimeout(() => createTone(800, 0.2, 0.4), 400);
             break;
             
+          case 'payment_received':
+            // Tom para pagamento
+            createTone(700, 0.3, 0.5);
+            setTimeout(() => createTone(900, 0.2, 0.5), 300);
+            break;
+            
           default:
+            // Som padrão
             createTone(500, 0.2, 0.3);
         }
       } catch (error) {
-        console.warn('Web Audio API não disponível');
+        console.warn('Web Audio API não disponível:', error);
       }
     }
   };
@@ -194,12 +140,18 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     connectingRef.current = true;
     
-    const newSocket = io({
+    // Configurar URL do Socket.IO baseado no ambiente
+    const socketUrl = process.env.NODE_ENV === 'production' 
+      ? undefined // Em produção, conecta ao mesmo domínio
+      : 'http://localhost:3000'; // Em desenvolvimento, conecta ao servidor local
+    
+    const newSocket = io(socketUrl, {
       timeout: 5000,
       retries: 3,
       reconnection: true,
       reconnectionDelay: 2000,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
+      transports: ['websocket', 'polling'] // Especificar transports explicitamente
     });
 
     newSocket.on('connect', () => {

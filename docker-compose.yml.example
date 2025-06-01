@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Recanto Verde Application
+  recanto-app:
+    image: ${DOCKER_IMAGE:-recantoverde/app:latest}
+    container_name: recanto-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+    labels:
+      # Traefik labels para proxy reverso
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      
+      # HTTP -> HTTPS redirect
+      - traefik.http.routers.recanto-web.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.recanto-web.entrypoints=web
+      - traefik.http.routers.recanto-web.middlewares=redirect-to-https
+      
+      # HTTPS
+      - traefik.http.routers.recanto-websecure.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.recanto-websecure.entrypoints=websecure
+      - traefik.http.routers.recanto-websecure.tls=true
+      - traefik.http.routers.recanto-websecure.tls.certresolver=letsencrypt
+      - traefik.http.services.recanto-app.loadbalancer.server.port=3000
+      
+      # Middleware para redirect
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+      
+      # Portainer labels (opcional)
+      - portainer.managed=true
+      - portainer.app=recanto-verde
+    networks:
+      - traefik
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  traefik:
+    external: true 
