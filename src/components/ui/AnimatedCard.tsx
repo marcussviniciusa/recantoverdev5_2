@@ -15,10 +15,10 @@ interface AnimatedCardProps {
 }
 
 const variants = {
-  default: 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg',
-  glass: 'bg-white/10 dark:bg-gray-800/10 backdrop-blur-md border border-white/20 dark:border-gray-700/20 shadow-xl',
-  gradient: 'bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg',
-  floating: 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl shadow-primary-500/10',
+  default: 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-lg',
+  glass: 'bg-white/20 dark:bg-gray-800/20 backdrop-blur-md border border-white/30 dark:border-gray-700/30 shadow-xl',
+  gradient: 'bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-300 dark:border-gray-600 shadow-lg',
+  floating: 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-2xl shadow-primary-500/10',
 };
 
 const paddings = {
@@ -94,14 +94,14 @@ export default function AnimatedCard({
         <motion.div
           className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           initial={{ opacity: 0 }}
-          whileHover={{ opacity: 0.1 }}
+          whileHover={{ opacity: 0.15 }}
         />
       )}
       
       {/* Shimmer effect on glass variant */}
       {variant === 'glass' && (
         <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 opacity-0 group-hover:opacity-100"
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 opacity-0 group-hover:opacity-100"
           initial={{ x: '-100%' }}
           whileHover={{ x: '100%' }}
           transition={{ duration: 1.5, ease: 'easeInOut' }}

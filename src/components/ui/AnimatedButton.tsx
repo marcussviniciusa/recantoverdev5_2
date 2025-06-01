@@ -16,11 +16,11 @@ interface AnimatedButtonProps {
 }
 
 const variants = {
-  primary: 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-lg shadow-primary-500/30 border border-primary-600',
-  secondary: 'bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-500 hover:border-primary-500 dark:hover:border-primary-400 text-gray-900 dark:text-gray-100 shadow-md hover:shadow-lg font-semibold',
-  success: 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/30',
-  danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/30',
-  warning: 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg shadow-amber-500/30',
+  primary: 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-lg shadow-primary-500/30 border border-primary-600 focus:ring-primary-500/50',
+  secondary: 'bg-white dark:bg-gray-800 border-2 border-gray-600 dark:border-gray-400 hover:border-primary-600 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-md hover:shadow-lg font-semibold focus:ring-gray-500/50 dark:focus:ring-gray-400/50',
+  success: 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg shadow-green-500/30 border border-green-500 focus:ring-green-500/50',
+  danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/30 border border-red-500 focus:ring-red-500/50',
+  warning: 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg shadow-amber-500/30 border border-amber-500 focus:ring-amber-500/50',
 };
 
 const sizes = {
@@ -51,9 +51,9 @@ export default function AnimatedButton({
         ${variants[variant]}
         ${sizes[size]}
         ${fullWidth ? 'w-full' : ''}
-        ${disabled || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${disabled || loading ? 'opacity-60 cursor-not-allowed saturate-50' : 'cursor-pointer'}
         ${className}
-        focus:outline-none focus:ring-4 focus:ring-primary-500/20
+        focus:outline-none focus:ring-4
         active:scale-[0.98]
       `}
       whileHover={{ scale: disabled || loading ? 1 : 1.02 }}

@@ -206,7 +206,7 @@ export default function GarcomMesas() {
 
   if (loading) {
     return (
-      <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 to-green-50 dark:from-gray-900 dark:to-gray-800">
+      <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-950 dark:to-gray-800">
         <div className="min-h-screen flex items-center justify-center">
           <AnimatedCard variant="glass" padding="xl" className="text-center">
             <motion.div
@@ -215,7 +215,7 @@ export default function GarcomMesas() {
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             />
             <motion.h2
-              className="text-xl font-semibold text-gray-800 dark:text-white"
+              className="text-xl font-semibold text-gray-900 dark:text-white"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -229,7 +229,7 @@ export default function GarcomMesas() {
   }
 
   return (
-    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 to-green-50 dark:from-gray-900 dark:to-gray-800">
+    <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-950 dark:to-gray-800">
       <main className="min-h-screen p-4 pb-20">
         {/* Header */}
         <motion.div
@@ -239,10 +239,10 @@ export default function GarcomMesas() {
           transition={{ duration: 0.6 }}
         >
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white">
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
               Minhas Mesas
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">
+            <p className="text-gray-700 dark:text-gray-200 mt-1">
               Olá, {userName}! Gerencie suas mesas ativas
             </p>
           </div>
@@ -303,10 +303,10 @@ export default function GarcomMesas() {
                 <div className="w-20 h-20 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-3xl">🍽️</span>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Nenhuma mesa ativa
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-gray-700 dark:text-gray-200 mb-4">
                   Crie uma nova mesa para começar a atender seus clientes
                 </p>
                 <AnimatedButton
@@ -330,7 +330,7 @@ export default function GarcomMesas() {
                           <span className="text-white font-bold text-lg">{table.number}</span>
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-gray-800 dark:text-white">Mesa {table.number}</h3>
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Mesa {table.number}</h3>
                           <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${getStatusColor(table.status)}`}>
                             <span>{getStatusIcon(table.status)}</span>
                             {getStatusText(table.status)}
@@ -342,7 +342,7 @@ export default function GarcomMesas() {
                     {/* Informações da Mesa */}
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Capacidade:</span>
+                        <span className="text-gray-700 dark:text-gray-300">Capacidade:</span>
                         <span className="font-medium text-gray-900 dark:text-white">👥 {table.capacity} pessoas</span>
                       </div>
 
@@ -350,13 +350,13 @@ export default function GarcomMesas() {
                         <>
                           {table.currentCustomers && (
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Clientes:</span>
-                              <span className="font-medium text-red-600">🧑‍🤝‍🧑 {table.currentCustomers}</span>
+                              <span className="text-gray-700 dark:text-gray-300">Clientes:</span>
+                              <span className="font-medium text-red-600 dark:text-red-400">🧑‍🤝‍🧑 {table.currentCustomers}</span>
                             </div>
                           )}
                           {table.identification && (
                             <div className="text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Cliente:</span>
+                              <span className="text-gray-700 dark:text-gray-300">Cliente:</span>
                               <p className="font-medium text-gray-900 dark:text-white mt-1">📝 {table.identification}</p>
                             </div>
                           )}

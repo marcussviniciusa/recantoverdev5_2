@@ -138,7 +138,7 @@ export default function GarcomDashboard() {
 
   if (loading) {
     return (
-      <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800">
         <div className="min-h-screen flex items-center justify-center pb-24">
           <AnimatedCard variant="glass" padding="xl" className="text-center">
             <motion.div
@@ -147,7 +147,7 @@ export default function GarcomDashboard() {
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             />
             <motion.h2
-              className="text-xl font-semibold text-gray-800 dark:text-white"
+              className="text-xl font-semibold text-gray-900 dark:text-white"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -162,10 +162,10 @@ export default function GarcomDashboard() {
   }
 
   return (
-    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800">
       {/* Header */}
       <motion.header
-        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 shadow-lg sticky top-0 z-40"
+        className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-40"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -183,7 +183,7 @@ export default function GarcomDashboard() {
               </div>
               <div className="ml-4">
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">👨‍🍳 {userName}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">👨‍🍳 {userName}</p>
               </div>
             </motion.div>
 
@@ -200,8 +200,8 @@ export default function GarcomDashboard() {
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 >
-                  <BellIcon className="w-6 h-6 text-amber-600" />
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  <BellIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center border border-white shadow-lg">
                     {unreadCount}
                   </span>
                 </motion.div>
@@ -230,7 +230,7 @@ export default function GarcomDashboard() {
               Bem-vindo de volta! 👋
             </motion.h2>
             <motion.p
-              className="text-gray-600 dark:text-gray-400"
+              className="text-gray-700 dark:text-gray-300"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.6 }}
@@ -243,12 +243,12 @@ export default function GarcomDashboard() {
           {unreadCount > 0 && (
             <AnimatedCard variant="gradient" padding="lg" className="mb-6 border-l-4 border-amber-500">
               <div className="flex items-center gap-3">
-                <ExclamationTriangleIcon className="w-6 h-6 text-amber-600" />
+                <ExclamationTriangleIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 <div>
-                  <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-100">
                     Você tem {unreadCount} notificação{unreadCount > 1 ? 'ões' : ''} não lida{unreadCount > 1 ? 's' : ''}
                   </h3>
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
                     Verifique novos pedidos e atualizações importantes
                   </p>
                 </div>
@@ -331,7 +331,7 @@ export default function GarcomDashboard() {
             {[
               { href: '/garcom/mesas', label: 'Gerenciar Mesas', icon: '🪑', color: 'primary' },
               { href: '/garcom/pedidos', label: 'Ver Pedidos', icon: '📋', color: 'secondary' },
-              { href: '/garcom/pagamentos', label: 'Pagamentos', icon: '💰', color: 'warning' },
+              { href: '/garcom/pagamentos', label: 'Pagamentos', icon: '��', color: 'warning' },
               { href: '#refresh', label: 'Atualizar', icon: '🔄', color: 'success', onClick: fetchData },
             ].map((action, index) => (
               <motion.div

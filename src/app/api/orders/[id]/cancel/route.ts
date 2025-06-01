@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'recanto_verde_super_secret_key_202
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verificar autenticação
@@ -46,7 +46,7 @@ export async function PATCH(
     }
 
     // Buscar o pedido
-    const order = await Order.findById(params.orderId).populate('waiterId', 'username email');
+    const order = await Order.findById(params.id).populate('waiterId', 'username email');
     
     if (!order) {
       return NextResponse.json({ success: false, error: 'Pedido não encontrado' }, { status: 404 });

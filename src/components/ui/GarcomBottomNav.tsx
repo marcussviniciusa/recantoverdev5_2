@@ -65,7 +65,7 @@ export default function GarcomBottomNav() {
 
   return (
     <motion.nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-700/50 shadow-2xl"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-700 shadow-2xl"
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -86,8 +86,8 @@ export default function GarcomBottomNav() {
                   className={`
                     relative flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300
                     ${active 
-                      ? 'text-white shadow-xl shadow-primary-600/40' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400'
+                      ? 'text-white shadow-xl shadow-primary-600/50' 
+                      : 'text-gray-800 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
                     }
                   `}
                   whileHover={{ scale: 1.05 }}
@@ -99,7 +99,7 @@ export default function GarcomBottomNav() {
                   {/* Background indicator for active state */}
                   {active && (
                     <motion.div
-                      className="absolute inset-0 bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl shadow-lg"
+                      className="absolute inset-0 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl shadow-lg border border-primary-500"
                       layoutId="activeTab"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
@@ -108,14 +108,14 @@ export default function GarcomBottomNav() {
                   {/* Icon and label */}
                   <div className="relative z-10 flex flex-col items-center">
                     <IconComponent className="w-5 h-5 mb-1" />
-                    <span className="text-xs font-medium leading-none">
+                    <span className="text-xs font-semibold leading-none">
                       {item.label}
                     </span>
 
                     {/* Badge for notifications */}
                     {item.badge && item.badge > 0 && (
                       <motion.div
-                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center border border-white shadow-lg"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 400, damping: 25 }}

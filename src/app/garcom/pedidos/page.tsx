@@ -238,7 +238,7 @@ export default function GarcomPedidos() {
 
   if (loading) {
     return (
-      <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800">
         <div className="min-h-screen flex items-center justify-center pb-24">
           <AnimatedCard variant="glass" padding="xl" className="text-center">
             <motion.div
@@ -247,7 +247,7 @@ export default function GarcomPedidos() {
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             />
             <motion.h2
-              className="text-xl font-semibold text-gray-800 dark:text-white"
+              className="text-xl font-semibold text-gray-900 dark:text-white"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -262,10 +262,10 @@ export default function GarcomPedidos() {
   }
 
   return (
-    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800">
       {/* Header */}
       <motion.header
-        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 shadow-lg sticky top-0 z-40"
+        className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-40"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -283,7 +283,7 @@ export default function GarcomPedidos() {
               </div>
               <div className="ml-4">
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">Meus Pedidos</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">👨‍🍳 {userName}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">👨‍🍳 {userName}</p>
               </div>
             </motion.div>
 
@@ -406,7 +406,7 @@ export default function GarcomPedidos() {
                             <h3 className="font-bold text-lg text-gray-900 dark:text-white">
                               Mesa {order.tableId.number}
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
                               {formatTime(order.createdAt)} • {order.waiterId.username}
                             </p>
                           </div>
@@ -430,7 +430,7 @@ export default function GarcomPedidos() {
                                   {item.quantity}x {item.productName}
                                 </span>
                                 {item.observations && (
-                                  <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                                  <p className="text-gray-700 dark:text-gray-300 text-xs mt-1">
                                     Obs: {item.observations}
                                   </p>
                                 )}

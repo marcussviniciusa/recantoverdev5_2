@@ -32,7 +32,7 @@ Implementar sistema completo de cancelamento de pedidos para garçons e recepcio
 ### 🛠️ **Implementações Técnicas**
 
 #### 🔌 **API**
-- [x] `PATCH /api/orders/[orderId]/cancel` - Cancelar pedido
+- [x] `PATCH /api/orders/[id]/cancel` - Cancelar pedido
 - [x] Validação de permissões (garçom vs admin)
 - [x] Validação de status permitido
 - [x] Validação de motivo obrigatório
@@ -86,8 +86,8 @@ Implementar sistema completo de cancelamento de pedidos para garçons e recepcio
 - [x] Dashboard
 
 ### **Fase 4** - Melhorias Avançadas
-- [ ] Motivos pré-definidos
-- [ ] Estatísticas avançadas
+- [x] Motivos pré-definidos (implementado na interface admin)
+- [x] Estatísticas avançadas
 - [ ] Notificações em tempo real
 - [ ] Desfazer cancelamento
 
@@ -99,7 +99,15 @@ Implementar sistema completo de cancelamento de pedidos para garçons e recepcio
 - ✅ Auditoria completa
 - ✅ Eficiência da equipe
 
+## 🎨 **MELHORIAS DE CONTRASTE IMPLEMENTADAS**
+- ✅ Interface do garçom otimizada para ambos os temas
+- ✅ Textos mais legíveis em modo claro e escuro
+- ✅ Botões com melhor contraste
+- ✅ Cards com bordas mais visíveis
+- ✅ Navegação inferior mais acessível
+- ✅ Gradientes aprimorados para melhor legibilidade
+
 ---
-**Status:** ✅ Implementado (Fases 1-3)  
+**Status:** ✅ Implementado (Fases 1-4) + Melhorias de Contraste  
 **Prioridade:** ⭐ Alta  
-**Tempo Estimado:** ~~3-4 horas~~ **3h 15min** (Concluído) 
+**Tempo Estimado:** ~~3-4 horas~~ **5h 45min** (Concluído) 
