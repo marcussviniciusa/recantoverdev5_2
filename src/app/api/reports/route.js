@@ -120,7 +120,10 @@ export async function GET(request) {
     const totalTables = tables.length;
     
     // Calcular ocupação real baseada nos pedidos
-    const averageOccupancy = totalOrders > 0 ? (totalOrders / totalTables) * 10 : 0; // Estimativa baseada nos pedidos
+    let averageOccupancy = 0;
+    if (totalTables > 0 && totalOrders > 0) {
+      averageOccupancy = Math.min((totalOrders / totalTables) * 10, 100); // Limitar a 100%
+    }
     
     const peakHours = [
       '12:00 - 13:00',
@@ -128,23 +131,31 @@ export async function GET(request) {
       '20:00 - 21:00'
     ];
 
-    const tableUtilization = tables.map(table => ({
-      tableNumber: table.number,
-      utilizationRate: 0 // Será calculado baseado em dados reais futuramente
-    }));
+    const tableUtilization = tables.map(table => {
+      // Calcular utilização baseada nos pedidos desta mesa específica
+      const tableOrders = orders.filter(order => 
+        order.tableId && order.tableId.number === table.number
+      );
+      const utilizationRate = Math.min((tableOrders.length / 10) * 100, 100); // Estimativa
+      
+      return {
+        tableNumber: table.number,
+        utilizationRate: utilizationRate || 0
+      };
+    });
 
-    // 7. Compilar dados do relatório
+    // 7. Compilar dados do relatório com valores padrão seguros
     const reportData = {
-      totalRevenue,
-      totalOrders,
-      averageOrderValue,
-      topProducts,
-      waiterPerformance,
-      dailyRevenue,
+      totalRevenue: totalRevenue || 0,
+      totalOrders: totalOrders || 0,
+      averageOrderValue: averageOrderValue || 0,
+      topProducts: topProducts || [],
+      waiterPerformance: waiterPerformance || [],
+      dailyRevenue: dailyRevenue || [],
       tableOccupancy: {
-        averageOccupancy,
-        peakHours,
-        tableUtilization
+        averageOccupancy: averageOccupancy || 0,
+        peakHours: peakHours || [],
+        tableUtilization: tableUtilization || []
       }
     };
 

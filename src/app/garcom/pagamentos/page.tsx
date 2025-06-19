@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import AnimatedCard from '../../../components/ui/AnimatedCard';
 import AnimatedButton from '../../../components/ui/AnimatedButton';
 import GarcomBottomNav from '../../../components/ui/GarcomBottomNav';
+import GarcomHeader from '../../../components/ui/GarcomHeader';
 import { AnimatedPageContainer, StaggeredGrid, StaggeredItem } from '../../../components/ui/PageTransition';
 import { 
   CreditCardIcon,
@@ -431,47 +432,7 @@ export default function GarcomPagamentos() {
   return (
     <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800">
       {/* Header */}
-      <motion.header
-        className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-lg sticky top-0 z-40"
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <motion.div
-              className="flex items-center"
-              initial={{ x: -50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-lg font-bold">RV</span>
-              </div>
-              <div className="ml-4">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Meus Pagamentos</h1>
-                <p className="text-sm text-gray-700 dark:text-gray-300">👨‍🍳 {userName}</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="flex items-center gap-3"
-              initial={{ x: 50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <AnimatedButton
-                variant="secondary"
-                size="sm"
-                onClick={loadData}
-                className="font-medium"
-              >
-                🔄 Atualizar
-              </AnimatedButton>
-            </motion.div>
-          </div>
-        </div>
-      </motion.header>
+      <GarcomHeader title="Pagamentos" userName={userName} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">

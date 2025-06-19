@@ -37,7 +37,8 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true
   },
   password: {
     type: String,
@@ -53,10 +54,33 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['ativo', 'inativo'],
     default: 'ativo'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, { 
   timestamps: true 
 });
+
+// Middleware para hash da senha antes de salvar
+userSchema.pre('save', async function(next) {
+  // Só faz hash se a senha foi modificada
+  if (!this.isModified('password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Método para comparar senhas
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 const User = mongoose.model('User', userSchema);
 
@@ -97,18 +121,41 @@ async function createAdminUser() {
       console.log(`   📧 Email: ${existingAdmin.email}`);
       console.log(`   🔑 Role: ${existingAdmin.role}`);
       console.log('');
-      console.log('💡 Se precisar resetar, use: npm run db:reset');
+      console.log('💡 Se precisar resetar, delete o usuário e execute novamente');
+      console.log('   Comando: db.users.deleteOne({email: "admin@recantoverde.com"})');
       return;
     }
 
     console.log('👤 Criando usuário administrador...');
 
-    // Criar usuário (o hash da senha será feito automaticamente pelo middleware do modelo)
+    // Hash da senha manualmente para garantir que funcionará
+    console.log('🔐 Fazendo hash da senha...');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(adminData.password, salt);
+    
+    // Criar usuário com senha já hasheada
     const newAdmin = new User({
-      ...adminData
+      ...adminData,
+      password: hashedPassword
     });
 
+    // Importante: marcar que a senha não foi modificada para evitar hash duplo
+    newAdmin.markModified('password');
+    newAdmin.isModified = function(path) {
+      if (path === 'password') return false;
+      return mongoose.Document.prototype.isModified.call(this, path);
+    };
+
     await newAdmin.save();
+
+    // Testar imediatamente se a senha está funcionando
+    console.log('🧪 Testando senha criada...');
+    const testUser = await User.findOne({ email: adminData.email }).select('+password');
+    const isPasswordWorking = await testUser.comparePassword(adminData.password);
+    
+    if (!isPasswordWorking) {
+      throw new Error('Falha na verificação da senha após criação');
+    }
 
     console.log('');
     console.log('🎉 Usuário administrador criado com sucesso!');
@@ -126,6 +173,8 @@ async function createAdminUser() {
     console.log('');
     console.log('⚠️  IMPORTANTE: Altere a senha após o primeiro login!');
     console.log('   Vá em: Admin → Configurações → Perfil');
+    console.log('');
+    console.log('✅ Senha testada e funcionando corretamente!');
 
   } catch (error) {
     console.error('❌ Erro ao criar usuário administrador:', error);
@@ -134,7 +183,8 @@ async function createAdminUser() {
       console.log('');
       console.log('⚠️  Erro de duplicação detectado.');
       console.log('💡 Parece que já existe um usuário com esses dados.');
-      console.log('   Use "npm run db:reset" para limpar o banco se necessário.');
+      console.log('   Delete o usuário existente se necessário:');
+      console.log('   db.users.deleteOne({email: "admin@recantoverde.com"})');
     }
   }
 }

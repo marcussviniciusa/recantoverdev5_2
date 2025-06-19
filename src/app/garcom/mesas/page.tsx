@@ -9,6 +9,7 @@ import AnimatedButton from '../../../components/ui/AnimatedButton';
 import AnimatedCard from '../../../components/ui/AnimatedCard';
 import AnimatedModal from '../../../components/ui/AnimatedModal';
 import GarcomBottomNav from '../../../components/ui/GarcomBottomNav';
+import GarcomHeader from '../../../components/ui/GarcomHeader';
 import { AnimatedPageContainer, StaggeredGrid, StaggeredItem } from '../../../components/ui/PageTransition';
 
 interface Table {
@@ -230,22 +231,17 @@ export default function GarcomMesas() {
 
   return (
     <AnimatedPageContainer className="bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-950 dark:to-gray-800">
-      <main className="min-h-screen p-4 pb-20">
-        {/* Header */}
+      {/* Header */}
+      <GarcomHeader title="Minhas Mesas" userName={userName} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+        {/* Botão Nova Mesa */}
         <motion.div
-          className="flex justify-between items-center mb-6"
+          className="mb-6 flex justify-end"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-              Minhas Mesas
-            </h1>
-            <p className="text-gray-700 dark:text-gray-200 mt-1">
-              Olá, {userName}! Gerencie suas mesas ativas
-            </p>
-          </div>
           <AnimatedButton
             variant="primary"
             size="sm"

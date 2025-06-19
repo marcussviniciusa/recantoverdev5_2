@@ -57,15 +57,15 @@ function LoginForm() {
   };
 
   return (
-    <AnimatedPageContainer className="bg-gradient-to-br from-primary-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <AnimatedPageContainer className="bg-gradient-to-br from-blue-100 via-white to-green-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
         {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
-            className="absolute -top-40 -right-40 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"
+            className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/30 dark:bg-primary-400/20 rounded-full blur-3xl"
             animate={{
               scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
+              opacity: [0.4, 0.6, 0.4],
             }}
             transition={{
               duration: 8,
@@ -74,10 +74,10 @@ function LoginForm() {
             }}
           />
           <motion.div
-            className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-400/20 rounded-full blur-3xl"
+            className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-400/30 dark:bg-green-400/20 rounded-full blur-3xl"
             animate={{
               scale: [1.2, 1, 1.2],
-              opacity: [0.3, 0.5, 0.3],
+              opacity: [0.4, 0.6, 0.4],
             }}
             transition={{
               duration: 10,
@@ -96,7 +96,7 @@ function LoginForm() {
             transition={{ delay: 0.2, duration: 0.6 }}
           >
             <motion.h1
-              className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-green-600 bg-clip-text text-transparent"
+              className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-green-700 dark:from-primary-400 dark:to-green-400 bg-clip-text text-transparent"
               animate={{
                 backgroundPosition: ['0%', '100%', '0%'],
               }}
@@ -109,7 +109,7 @@ function LoginForm() {
               Recanto Verde
             </motion.h1>
             <motion.p
-              className="mt-2 text-gray-600 dark:text-gray-400"
+              className="mt-2 text-gray-700 dark:text-gray-300"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.6 }}
@@ -122,13 +122,13 @@ function LoginForm() {
           <AnimatedCard
             variant="glass"
             padding="lg"
-            className="backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-white/20 shadow-2xl"
+            className="backdrop-blur-xl bg-white/95 dark:bg-gray-900/90 border border-gray-200/50 dark:border-gray-700/50 shadow-2xl"
             delay={0.3}
           >
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
                 <motion.div
-                  className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 px-4 py-3 rounded-xl"
+                  className="bg-red-50 dark:bg-red-900/50 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 px-4 py-3 rounded-xl"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -152,9 +152,10 @@ function LoginForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="
-                    block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
-                    rounded-xl shadow-sm bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm
-                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                    block w-full px-4 py-3 border border-gray-400 dark:border-gray-600 
+                    rounded-xl shadow-sm bg-white/90 dark:bg-gray-800/80 backdrop-blur-sm
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                    dark:focus:ring-primary-500 dark:focus:border-primary-500
                     transition-all duration-200 ease-in-out
                     placeholder-gray-500 dark:placeholder-gray-400
                     text-gray-900 dark:text-white font-medium
@@ -178,9 +179,10 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="
-                    block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
-                    rounded-xl shadow-sm bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm
-                    focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                    block w-full px-4 py-3 border border-gray-400 dark:border-gray-600 
+                    rounded-xl shadow-sm bg-white/90 dark:bg-gray-800/80 backdrop-blur-sm
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                    dark:focus:ring-primary-500 dark:focus:border-primary-500
                     transition-all duration-200 ease-in-out
                     placeholder-gray-500 dark:placeholder-gray-400
                     text-gray-900 dark:text-white font-medium
@@ -210,7 +212,7 @@ function LoginForm() {
 
           {/* Footer */}
           <motion.div
-            className="text-center text-sm text-gray-500 dark:text-gray-400"
+            className="text-center text-sm text-gray-600 dark:text-gray-400"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.6 }}

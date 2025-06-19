@@ -287,7 +287,12 @@ export default function AdminRelatorios() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Taxa de Ocupação</p>
-              <p className="text-2xl font-bold text-gray-900">{reportData.tableOccupancy.averageOccupancy.toFixed(1)}%</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {reportData.tableOccupancy?.averageOccupancy ? 
+                  `${reportData.tableOccupancy.averageOccupancy.toFixed(1)}%` : 
+                  '0.0%'
+                }
+              </p>
             </div>
           </div>
         </div>
@@ -378,7 +383,7 @@ export default function AdminRelatorios() {
           <div>
             <h4 className="font-medium text-gray-900 mb-3">Horários de Pico</h4>
             <div className="space-y-2">
-              {reportData.tableOccupancy.peakHours.map((hour, index) => (
+              {(reportData.tableOccupancy?.peakHours || []).map((hour, index) => (
                 <div key={index} className="flex items-center">
                   <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
                   <span className="text-sm text-gray-700">{hour}</span>
@@ -390,17 +395,17 @@ export default function AdminRelatorios() {
           <div>
             <h4 className="font-medium text-gray-900 mb-3">Taxa de Utilização por Mesa</h4>
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {reportData.tableOccupancy.tableUtilization.map((table, index) => (
+              {(reportData.tableOccupancy?.tableUtilization || []).map((table, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <span className="text-sm text-gray-700">Mesa {table.tableNumber}</span>
                   <div className="flex items-center">
                     <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${table.utilizationRate}%` }}
+                        style={{ width: `${table.utilizationRate || 0}%` }}
                       ></div>
                     </div>
-                    <span className="text-xs text-gray-600 w-10">{table.utilizationRate.toFixed(0)}%</span>
+                    <span className="text-xs text-gray-600 w-10">{(table.utilizationRate || 0).toFixed(0)}%</span>
                   </div>
                 </div>
               ))}
@@ -434,7 +439,7 @@ export default function AdminRelatorios() {
           <div className="bg-white rounded-lg p-4">
             <h4 className="font-medium text-blue-900 mb-2">🕐 Horários</h4>
             <p className="text-blue-800">
-              {reportData.tableOccupancy.peakHours.length > 0 && 
+              {reportData.tableOccupancy?.peakHours?.length > 0 && 
                 `Horário de pico: ${reportData.tableOccupancy.peakHours.join(', ')}`
               }
             </p>
@@ -443,7 +448,10 @@ export default function AdminRelatorios() {
           <div className="bg-white rounded-lg p-4">
             <h4 className="font-medium text-blue-900 mb-2">📊 Ocupação</h4>
             <p className="text-blue-800">
-              Taxa média de ocupação: {reportData.tableOccupancy.averageOccupancy.toFixed(1)}%
+              Taxa média de ocupação: {reportData.tableOccupancy?.averageOccupancy ? 
+                `${reportData.tableOccupancy.averageOccupancy.toFixed(1)}%` : 
+                '0.0%'
+              }
             </p>
           </div>
         </div>
